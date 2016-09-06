@@ -1,0 +1,18 @@
+dev:
+  image: mhart/alpine-node:4
+  links:
+   - db
+  working_dir: /src
+  volumes:
+    - .:/src
+  environment:
+    DB_HOST: db
+    DB_DATABASE: dataloader_test
+    DB_USER: dataloader_test
+    DB_PASSWORD: dataloader_test
+
+db:
+  image: postgres:9.4
+  environment:
+    POSTGRES_USER: dataloader_test
+    POSTGRES_PASSWORD: dataloader_test
