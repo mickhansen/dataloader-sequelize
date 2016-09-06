@@ -16,8 +16,6 @@ describe('hasOne', function () {
       foreignKey: 'ownerId'
     });
 
-    dataloaderSequelize(connection);
-
     await connection.sync({
       force: true
     });
@@ -35,6 +33,7 @@ describe('hasOne', function () {
       this.user2.setMainProject(this.project2)
     );
 
+    dataloaderSequelize(this.User);
     this.sandbox.spy(this.Project, 'findAll');
   });
   afterEach(function () {
@@ -54,6 +53,5 @@ describe('hasOne', function () {
         ownerId: [this.user1.get('id'), this.user2.get('id')]
       }
     }]);
-
   });
 });

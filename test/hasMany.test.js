@@ -22,8 +22,6 @@ describe('hasMany', function () {
         as: 'members'
       });
 
-      dataloaderSequelize(connection);
-
       await connection.sync({
         force: true
       });
@@ -49,6 +47,7 @@ describe('hasMany', function () {
       await this.project2.setMembers(this.users.slice(3, 7));
       await this.project3.setMembers(this.users.slice(7));
 
+      dataloaderSequelize(this.Project);
       this.sandbox.spy(this.User, 'findAll');
     });
 
@@ -148,8 +147,6 @@ describe('hasMany', function () {
         as: 'members'
       });
 
-      dataloaderSequelize(connection);
-
       await connection.sync({
         force: true
       });
@@ -175,6 +172,7 @@ describe('hasMany', function () {
       await this.project2.setMembers(this.users.slice(3, 7));
       await this.project3.setMembers(this.users.slice(7));
 
+      dataloaderSequelize(this.Project);
       this.sandbox.spy(this.User, 'findAll');
     });
 

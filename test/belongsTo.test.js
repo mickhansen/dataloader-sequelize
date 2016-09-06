@@ -20,33 +20,19 @@ describe('belongsTo', function () {
       this.User = connection.define('user');
       this.Project = connection.define('project');
 
-      this.ProjectOwner = this.Project.belongsTo(this.User, {
+      this.Project.belongsTo(this.User, {
         as: 'owner'
       });
 
-      dataloaderSequelize(connection);
+      dataloaderSequelize(this.User);
 
       await connection.sync({
         force: true
       });
 
-      this.project1 = await this.Project.create({
-        id: 1,
-        owner: {
-          id: 44
-        }
-      }, { include: [this.ProjectOwner] });
-      this.project2 = await this.Project.create({
-        id: 2,
-        owner: {
-          id: 43
-        }
-      }, { include: [this.ProjectOwner] });
-      this.users = await this.User.findAll();
-
       [this.user1, this.user2] = await this.User.bulkCreate([
         { id: randint() },
-        { id: randint()  }
+        { id: randint() }
       ], { returning: true });
       [this.project1, this.project2] = await this.Project.bulkCreate([
         { id: randint() },
@@ -85,13 +71,11 @@ describe('belongsTo', function () {
       });
       this.Project = connection.define('project');
 
-      this.ProjectOwner = this.Project.belongsTo(this.User, {
+      this.Project.belongsTo(this.User, {
         targetKey: 'someId',
         as: 'owner',
         constraints: false
       });
-
-      dataloaderSequelize(connection);
 
       await connection.sync({
         force: true
@@ -110,6 +94,7 @@ describe('belongsTo', function () {
         this.project2.setOwner(this.user2)
       );
 
+      dataloaderSequelize(this.Project);
       this.sandbox.spy(this.User, 'findAll');
     });
 

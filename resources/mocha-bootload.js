@@ -21,3 +21,7 @@ unexpected.addType({
     return a.Model.name === b.Model.name && a.get(pk) === b.get(pk);
   }
 });
+
+unexpected.addAssertion('<function> [not] to be shimmed', function (expect, subject) {
+  return expect(subject, '[not] to have property', '__wrapped');
+});
