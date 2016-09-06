@@ -8,6 +8,7 @@
   },
   "license": "MIT",
   "scripts": {
+    "prepublish": "npm run build",
     "lint": "eslint src",
     "build": "babel src -d lib",
     "test": "docker-compose run --rm dev npm run test:raw",

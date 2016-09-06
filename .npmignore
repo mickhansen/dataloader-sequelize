@@ -28,4 +28,5 @@ node_modules
 
 .idea
 test/mocha.opts
-lib
+
+src
