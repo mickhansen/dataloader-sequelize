@@ -1,0 +1,7 @@
+machine:
+  node:
+    version: 4.0.0
+
+test:
+  override:
+    - DB_HOST=localhost DB_DATABASE=circle_test DB_USER=ubuntu DB_PASSWORD= npm run test:raw
