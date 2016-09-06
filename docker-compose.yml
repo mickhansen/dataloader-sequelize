@@ -1,0 +1,14 @@
+# dev build that uses local code and node_modules
+dev:
+  image: mhart/alpine-node:4
+  links:
+   - db
+  working_dir: /src
+  volumes:
+    - .:/src
+
+db:
+  image: postgres:9.4
+  environment:
+    POSTGRES_USER: dataloader_test
+    POSTGRES_PASSWORD: dataloader_test

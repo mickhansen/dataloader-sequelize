@@ -1,0 +1,43 @@
+{
+  "name": "dataloader-sequelize",
+  "version": "0.0.1",
+  "description": "Batching and simplification of Sequelize with facebook/dataloader",
+  "main": "lib/index.js",
+  "options": {
+    "mocha": "--require resources/mocha-bootload --check-leaks --timeout 10000 --colors --reporter spec --recursive"
+  },
+  "license": "MIT",
+  "scripts": {
+    "lint": "eslint src",
+    "build": "babel src -d lib",
+    "test": "docker-compose run --rm dev npm run test:raw",
+    "test:raw": "npm run lint && NODE_ENV=test mocha $npm_package_options_mocha 'test/**.test.js'"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.10.1",
+    "babel-eslint": "^6.1.0",
+    "babel-plugin-transform-async-to-module-method": "^6.8.0",
+    "babel-plugin-transform-object-rest-spread": "^6.8.0",
+    "babel-preset-es2015-node4": "^2.1.0",
+    "babel-register": "^6.9.0",
+    "bluebird": "^3.4.6",
+    "eslint": "^3.0.0",
+    "mocha": "^3.0.0",
+    "pg": "^6.1.0",
+    "sequelize": "^3.24.1",
+    "sinon": "^1.17.4",
+    "sinon-as-promised": "^4.0.0",
+    "unexpected": "^10.14.2",
+    "unexpected-set": "^1.1.0",
+    "unexpected-sinon": "^10.2.1"
+  },
+  "peerDependencies": {
+    "sequelize": "^3.0.0"
+  },
+  "dependencies": {
+    "dataloader": "^1.2.0",
+    "lodash": "^4.15.0",
+    "lru-cache": "^4.0.1",
+    "shimmer": "^1.1.0"
+  }
+}
