@@ -14,7 +14,10 @@ unexpected.addType({
     return value && value instanceof Sequelize.Instance;
   },
   inspect: function (value, depth, output, inspect) {
-    output.append(inspect(value.get(), depth));
+    output
+      .text(value.Model.name).text('(')
+      .append(inspect(value.get(), depth))
+      .text(')');
   },
   equal: function (a, b) {
     const pk = a.Model.primaryKeyAttribute;

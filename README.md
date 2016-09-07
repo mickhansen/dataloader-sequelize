@@ -85,6 +85,7 @@ With the help of `dataloader-sequelize`, these calls will be merged into a singl
 * `BelongsTo.get`
 * `HasOne.get`
 * `HasMany.get`
+* `BelongsToMany.get`
 
 Batching is then handled by [facebook/dataloader](https://github.com/facebook/dataloader), which batches all request
 on the same tick into a single request.
