@@ -4,10 +4,29 @@ import DataLoader from 'dataloader';
 import Promise from 'bluebird';
 import {isEmpty, groupBy, property, values} from 'lodash';
 import LRU from 'lru-cache';
+import assert from 'assert';
 
 function mapResult(attribute, keys, options, result) {
   // Convert an array of results to an object of attribute (primary / foreign / target key) -> array of matching rows
-  result = groupBy(result, property(attribute));
+  if (Array.isArray(attribute)) {
+    // Belongs to many
+    let [throughAttribute, foreignKey] = attribute;
+    result = result.reduce((carry, row) => {
+      for (const throughRow of row.get(throughAttribute)) {
+        let key = throughRow[foreignKey];
+        if (!(key in carry)) {
+          carry[key] = [];
+        }
+
+        carry[key].push(row);
+      }
+
+
+      return carry;
+    }, {});
+  } else {
+    result = groupBy(result, property(attribute));
+  }
 
   return keys.map(key => {
     if (key in result) {
@@ -19,8 +38,53 @@ function mapResult(attribute, keys, options, result) {
   });
 }
 
+function getCacheKey(model, attribute, options) {
+  return model.name + attribute + JSON.stringify(options, (key, value) => {
+    if (key === 'association') {
+      return value.associationType + value.target.name + value.as;
+    }
+
+    return value;
+  });
+}
+
+function loaderForBTM(model, attributes, options = {}) {
+  assert(options.include === undefined, 'options.include is not supported by model loader');
+  assert(options.association !== undefined, 'options.association should be set for BTM loader');
+  assert(Array.isArray(attributes), 'Attributes for BTM loader should be an array');
+  assert(attributes.length === 2, 'Attributes for BTM loader should have length two');
+
+  let cacheKey = getCacheKey(model, attributes, options);
+
+  if (!cache.has(cacheKey)) {
+    cache.set(cacheKey, new DataLoader(keys => {
+      if (options.limit) {
+        options.groupedLimit = {
+          on: options.association,
+          limit: options.limit,
+          values: keys
+        };
+      } else {
+        options.include = [{
+          association: options.association.manyFromSource,
+          where: {
+            [attributes[1]]: keys
+          }
+        }];
+      }
+      delete options.association;
+
+      return model.findAll(options).then(mapResult.bind(null, attributes, keys, options));
+    }));
+  }
+
+  return cache.get(cacheKey);
+}
+
 function loaderForModel(model, attribute, options = {}) {
-  let cacheKey = model.name + attribute + JSON.stringify(options);
+  assert(options.include === undefined, 'options.include is not supported by model loader');
+
+  let cacheKey = getCacheKey(model, attribute, options);
 
   if (!cache.has(cacheKey)) {
     if (options.limit) {
@@ -120,10 +184,33 @@ function shimHasMany(target) {
   });
 }
 
+function shimBelongsToMany(target) {
+  shimmer.wrap(target, 'get', original => {
+    return function bathedGetHasMany(instances, options = {}) {
+      if (!isEmpty(options.where) || options.include || options.transaction) {
+        return original.apply(this, arguments);
+      }
+
+      let loader = loaderForBTM(this.target, [this.as, this.foreignKey], {
+        ...options,
+        association: this.paired,
+        multiple: true
+      });
+
+      if (Array.isArray(instances)) {
+        return Promise.map(instances, instance => loader.load(instance.get(this.source.primaryKeyAttribute)));
+      } else {
+        return loader.load(instances.get(this.source.primaryKeyAttribute));
+      }
+    };
+  });
+}
+
 function shimAssociation(association) {
   if (association instanceof Sequelize.Association.BelongsTo) shimBelongsTo(association);
   else if (association instanceof Sequelize.Association.HasOne) shimHasOne(association);
   else if (association instanceof Sequelize.Association.HasMany) shimHasMany(association);
+  else if (association instanceof Sequelize.Association.BelongsToMany) shimBelongsToMany(association);
 }
 
 let cache;
@@ -148,5 +235,6 @@ export default function (target, options = {}) {
     shimBelongsTo(target.Association.BelongsTo.prototype);
     shimHasOne(target.Association.HasOne.prototype);
     shimHasMany(target.Association.HasMany.prototype);
+    shimBelongsToMany(target.Association.BelongsToMany.prototype);
   }
 }
