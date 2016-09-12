@@ -79,7 +79,7 @@ describe('belongsTo', function () {
       }]);
     });
 
-    it('batches to multiple findAll call when limit is applied', async function () {
+    it('batches to multiple findAll call when different limits are applied', async function () {
       let members1 = this.project1.getMembers({ limit: 4 })
         , members2 = this.project2.getMembers({ limit: 2 })
         , members3 = this.project3.getMembers({ limit: 2 });
