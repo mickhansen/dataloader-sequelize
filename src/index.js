@@ -11,17 +11,16 @@ function mapResult(attribute, keys, options, result) {
   if (Array.isArray(attribute)) {
     // Belongs to many
     let [throughAttribute, foreignKey] = attribute;
-
     result = result.reduce((carry, row) => {
-      for (const through of row.get(throughAttribute)) {
-        let key = through.get(foreignKey);
-
+      for (const throughRow of row.get(throughAttribute)) {
+        let key = throughRow[foreignKey];
         if (!(key in carry)) {
           carry[key] = [];
         }
 
         carry[key].push(row);
       }
+
 
       return carry;
     }, {});
@@ -41,7 +40,7 @@ function mapResult(attribute, keys, options, result) {
 
 function getCacheKey(model, attribute, options) {
   return model.name + attribute + JSON.stringify(options, (key, value) => {
-    if (key === 'includeAssociation') {
+    if (key === 'association') {
       return value.associationType + value.target.name + value.as;
     }
 
@@ -51,25 +50,31 @@ function getCacheKey(model, attribute, options) {
 
 function loaderForBTM(model, attributes, options = {}) {
   assert(options.include === undefined, 'options.include is not supported by model loader');
-  assert(options.includeAssociation !== undefined, 'options.includeAssociation should be set for BTM loader');
+  assert(options.association !== undefined, 'options.association should be set for BTM loader');
   assert(Array.isArray(attributes), 'Attributes for BTM loader should be an array');
   assert(attributes.length === 2, 'Attributes for BTM loader should have length two');
-  assert(options.limit === undefined, 'BTM loader does not support limit');
 
   let cacheKey = getCacheKey(model, attributes, options);
 
   if (!cache.has(cacheKey)) {
     cache.set(cacheKey, new DataLoader(keys => {
-      options.include = [{
-        association: options.includeAssociation,
-        where: {
-          [attributes[1]]: keys
-        }
-      }];
+      if (options.limit) {
+        options.groupedLimit = {
+          on: options.association,
+          limit: options.limit,
+          values: keys
+        };
+      } else {
+        options.include = [{
+          association: options.association.manyFromSource,
+          where: {
+            [attributes[1]]: keys
+          }
+        }];
+      }
+      delete options.association;
 
-      return model.findAll({
-        include: options.include
-      }).then(mapResult.bind(null, attributes, keys, options));
+      return model.findAll(options).then(mapResult.bind(null, attributes, keys, options));
     }));
   }
 
@@ -182,13 +187,13 @@ function shimHasMany(target) {
 function shimBelongsToMany(target) {
   shimmer.wrap(target, 'get', original => {
     return function bathedGetHasMany(instances, options = {}) {
-      if (!isEmpty(options.where) || options.limit || options.include || options.transaction) {
+      if (!isEmpty(options.where) || options.include || options.transaction) {
         return original.apply(this, arguments);
       }
 
       let loader = loaderForBTM(this.target, [this.as, this.foreignKey], {
         ...options,
-        includeAssociation: this.manyFromTarget,
+        association: this.paired,
         multiple: true
       });
 
