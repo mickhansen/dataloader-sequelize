@@ -137,34 +137,37 @@ describe('hasMany', function () {
     });
 
     it('batches to multiple findAll call when where clauses are different', async function () {
-      let members1 = this.project1.getMembers({ where: { id: { $gte: 5000 } }})
-        , members2 = this.project2.getMembers({ where: { id: { $gte: 5000 } }})
-        , members3 = this.project3.getMembers({ where: { id: { $lte: 5000 } }});
+      let members1 = this.project1.getMembers({ where: { awesome: true }})
+        , members2 = this.project2.getMembers({ where: { awesome: false }})
+        , members3 = this.project3.getMembers({ where: { awesome: true }});
 
-      await expect(members1, 'when fulfilled', expect.it('to be empty').or('to have items satisfying', item => {
-        expect(item.get('id'), 'to be greater than or equal to', 5000);
-      }));
-      await expect(members2, 'when fulfilled', expect.it('to be empty').or('to have items satisfying', item => {
-        expect(item.get('id'), 'to be greater than or equal to', 5000);
-      }));
-      await expect(members3, 'when fulfilled', expect.it('to be empty').or('to have items satisfying', item => {
-        expect(item.get('id'), 'to be less than or equal to', 5000);
-      }));
+      await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[1],
+        this.users[2]
+      ]);
+      await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[3],
+        this.users[5]
+      ]);
+      await expect(members3, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[7],
+        this.users[8]
+      ]);
 
       expect(this.User.findAll, 'was called twice');
       expect(this.User.findAll, 'to have a call satisfying', [{
         where: {
           $and: [
-            { projectId: [this.project1.get('id'), this.project2.get('id')]},
-            { id: { $gte: 5000 }}
+            { projectId: [this.project1.get('id'), this.project3.get('id')]},
+            { awesome: true }
           ]
         }
       }]);
       expect(this.User.findAll, 'to have a call satisfying', [{
         where: {
           $and: [
-            { projectId: [this.project3.get('id')]},
-            { id: { $lte: 5000 }}
+            { projectId: [this.project2.get('id')]},
+            { awesome: false }
           ]
         }
       }]);
@@ -173,7 +176,8 @@ describe('hasMany', function () {
     it('batches to multiple findAll call with where + limit', async function () {
       let members1 = this.project1.getMembers({ where: { awesome: true }, limit: 1 })
         , members2 = this.project2.getMembers({ where: { awesome: true }, limit: 1 })
-        , members3 = this.project3.getMembers({ where: { awesome: true }, limit: 2 });
+        , members3 = this.project2.getMembers({ where: { awesome: false }, limit: 1 })
+        , members4 = this.project3.getMembers({ where: { awesome: true }, limit: 2 });
 
       await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
         this.users[1]
@@ -182,11 +186,14 @@ describe('hasMany', function () {
         this.users[4]
       ]);
       await expect(members3, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[3]
+      ]);
+      await expect(members4, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
         this.users[7],
         this.users[8]
       ]);
 
-      expect(this.User.findAll, 'was called twice');
+      expect(this.User.findAll, 'was called thrice');
       expect(this.User.findAll, 'to have a call satisfying', [{
         where: {
           awesome: true
@@ -204,6 +211,15 @@ describe('hasMany', function () {
           ]
         },
         limit: 2
+      }]);
+      expect(this.User.findAll, 'to have a call satisfying', [{
+        where: {
+          $and: [
+            { projectId: this.project2.get('id') },
+            { awesome: false }
+          ]
+        },
+        limit: 1
       }]);
     });
   });

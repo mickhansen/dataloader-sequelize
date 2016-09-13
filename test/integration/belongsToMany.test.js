@@ -106,7 +106,8 @@ describe('belongsToMany', function () {
     it('batches to multiple findAll call with where + limit', async function () {
       let members1 = this.project1.getMembers({ where: { awesome: true }, limit: 1 })
         , members2 = this.project2.getMembers({ where: { awesome: true }, limit: 1 })
-        , members3 = this.project3.getMembers({ where: { awesome: true }, limit: 2 });
+        , members3 = this.project2.getMembers({ where: { awesome: false }, limit: 2 })
+        , members4 = this.project3.getMembers({ where: { awesome: true }, limit: 2 });
 
       await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
         this.users[1]
@@ -115,11 +116,15 @@ describe('belongsToMany', function () {
         this.users[4]
       ]);
       await expect(members3, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[3],
+        this.users[5]
+      ]);
+      await expect(members4, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
         this.users[6],
         this.users[7]
       ]);
 
-      expect(this.User.findAll, 'was called twice');
+      expect(this.User.findAll, 'was called thrice');
       expect(this.User.findAll, 'to have a call satisfying', [{
         where: {
           awesome: true
@@ -138,6 +143,16 @@ describe('belongsToMany', function () {
           on: this.Project.Users.paired,
           limit: 2,
           values: [this.project3.get('id')]
+        }
+      }]);
+      expect(this.User.findAll, 'to have a call satisfying', [{
+        where: {
+          awesome: false
+        },
+        groupedLimit: {
+          on: this.Project.Users.paired,
+          limit: 2,
+          values: [this.project2.get('id')]
         }
       }]);
     });

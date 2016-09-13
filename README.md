@@ -93,7 +93,7 @@ on the same tick into a single request.
 ## Limitations
 
 Only plain requests are batched, meaning requests with includes and transactions are skipped. The
-batching does handle limit, and where; but different limits and wheres are placed in different batches. Currently this module only uses leverages
+batching does handle limit, and where; but different limits and wheres are placed in different batches. Currently this module only leverages
 the batching functionality from dataloader, caching is disabled.
 
 # API
