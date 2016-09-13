@@ -23,7 +23,8 @@ describe('shimming', function () {
         connection.Model.prototype.findById,
         connection.Association.BelongsTo.prototype.get,
         connection.Association.HasOne.prototype.get,
-        connection.Association.HasMany.prototype.get
+        connection.Association.HasMany.prototype.get,
+        connection.Association.BelongsToMany.prototype.get
       ].forEach(i => i.__unwrap());
     });
 
@@ -85,6 +86,13 @@ describe('shimming', function () {
       expect(this.User.PrimaryTask.get, 'not to be shimmed');
       expect(this.Task.User.get, 'not to be shimmed');
     });
+  });
+
+  it('throws error for non-paired BTM', function () {
+    let UserTasks = this.User.belongsToMany(this.Task, { through: 'foobar' });
+    dataloaderSequelize(UserTasks);
+
+    expect(() => UserTasks.get(), 'to throw');
   });
 });
 

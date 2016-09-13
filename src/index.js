@@ -2,7 +2,7 @@ import Sequelize from 'sequelize';
 import shimmer from 'shimmer';
 import DataLoader from 'dataloader';
 import Promise from 'bluebird';
-import {isEmpty, groupBy, property, values} from 'lodash';
+import {groupBy, property, values} from 'lodash';
 import LRU from 'lru-cache';
 import assert from 'assert';
 
@@ -38,23 +38,37 @@ function mapResult(attribute, keys, options, result) {
   });
 }
 
+function stringifyValue(value) {
+  if (value instanceof Sequelize.Association) {
+    return `${value.associationType},${value.target.name},${value.as}`;
+  } else if (Array.isArray(value)) {
+    return value.sort().map(stringifyValue).join(',');
+  } else if (typeof value === 'object') {
+    return stringifyObject(value);
+  }
+  return value;
+}
+
+// This is basically a home-grown JSON.stringifier. However, JSON.stringify on objects
+// depends on the order in which the properties were defined - which we don't like!
+// Additionally, JSON.stringify escapes strings, which we don't need here
+function stringifyObject(object, keys = Object.keys(object)) {
+  return keys.sort().map(key => `${key}:${stringifyValue(object[key])}`).join('|');
+}
+
 export function getCacheKey(model, attribute, options) {
-  return model.name + attribute + JSON.stringify(options, function replacer(key, value) {
-    if (!key) {
-      // We were called with the whole object
-      return value;
-    }
+  options = stringifyObject(options, ['association', 'attributes', 'groupedLimit', 'limit', 'order', 'where']);
 
-    if (key === 'association') {
-      return value.associationType + value.target.name + value.as;
-    }
+  return `${model.name}|${attribute}|${options}`;
+}
 
-    if (['attributes', 'limit', 'groupedLimit', 'order'].indexOf(key) !== -1) {
-      return value;
-    }
-
-    return undefined; // skip
-  });
+function mergeWhere(where, optionsWhere) {
+  if (optionsWhere) {
+    return {
+      $and: [where, optionsWhere]
+    };
+  }
+  return where;
 }
 
 function loaderForBTM(model, attributes, options = {}) {
@@ -76,9 +90,9 @@ function loaderForBTM(model, attributes, options = {}) {
       } else {
         options.include = [{
           association: options.association.manyFromSource,
-          where: {
+          where: mergeWhere({
             [attributes[1]]: keys
-          }
+          }, options.where)
         }];
       }
       delete options.association;
@@ -99,11 +113,10 @@ function loaderForModel(model, attribute, options = {}) {
     if (options.limit) {
       cache.set(cacheKey, new DataLoader(keys => {
         if (keys.length === 1) {
-
           return model.findAll({
-            where: {
+            where: mergeWhere({
               [attribute]: keys[0]
-            },
+            }, options.where),
             limit: options.limit
           }).then(mapResult.bind(null, attribute, keys, options));
         }
@@ -113,7 +126,8 @@ function loaderForModel(model, attribute, options = {}) {
             limit: options.limit,
             on: attribute,
             values: keys
-          }
+          },
+          where: options.where
         }).then(mapResult.bind(null, attribute, keys, options));
       }, {
         cache: false
@@ -121,9 +135,9 @@ function loaderForModel(model, attribute, options = {}) {
     } else {
       cache.set(cacheKey, new DataLoader(keys => {
         return model.findAll({
-          where: {
+          where: mergeWhere({
             [attribute]: keys
-          }
+          }, options.where),
         }).then(mapResult.bind(null, attribute, keys, options));
       }, {
         cache: false
@@ -149,7 +163,7 @@ function shimBelongsTo(target) {
   shimmer.wrap(target, 'get', original => {
     return function batchedGetBelongsTo(instance, options = {}) {
       // targetKeyIsPrimary already handled by sequelize (maps to findById)
-      if (this.targetKeyIsPrimary || Array.isArray(instance) || !isEmpty(options.where) || options.include || options.transaction) {
+      if (this.targetKeyIsPrimary || Array.isArray(instance) || options.include || options.transaction) {
         return original.apply(this, arguments);
       }
 
@@ -162,7 +176,7 @@ function shimBelongsTo(target) {
 function shimHasOne(target) {
   shimmer.wrap(target, 'get', original => {
     return function batchedGetHasOne(instance, options = {}) {
-      if (Array.isArray(instance) || !isEmpty(options.where) || options.include || options.transaction) {
+      if (Array.isArray(instance) || options.include || options.transaction) {
         return original.apply(this, arguments);
       }
 
@@ -175,7 +189,7 @@ function shimHasOne(target) {
 function shimHasMany(target) {
   shimmer.wrap(target, 'get', original => {
     return function bathedGetHasMany(instances, options = {}) {
-      if (!isEmpty(options.where) || options.include || options.transaction) {
+      if (options.include || options.transaction) {
         return original.apply(this, arguments);
       }
 
@@ -196,7 +210,9 @@ function shimHasMany(target) {
 function shimBelongsToMany(target) {
   shimmer.wrap(target, 'get', original => {
     return function bathedGetHasMany(instances, options = {}) {
-      if (!isEmpty(options.where) || options.include || options.transaction) {
+      assert(target.paired, '.paired missing on belongsToMany association. You need to set up both sides of the association');
+
+      if (options.include || options.transaction) {
         return original.apply(this, arguments);
       }
 

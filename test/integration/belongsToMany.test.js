@@ -4,7 +4,7 @@ import dataloaderSequelize from '../../src';
 import expect from 'unexpected';
 import Sequelize from 'sequelize';
 
-describe('belongsTo', function () {
+describe('belongsToMany', function () {
   beforeEach(async function () {
     this.sandbox = sinon.sandbox.create();
   });
@@ -17,7 +17,8 @@ describe('belongsTo', function () {
       this.sandbox = sinon.sandbox.create();
 
       this.User = connection.define('user', {
-        name: Sequelize.STRING
+        name: Sequelize.STRING,
+        awesome: Sequelize.BOOLEAN
       });
       this.Project = connection.define('project');
 
@@ -34,15 +35,15 @@ describe('belongsTo', function () {
         { id: randint() }
       ], {returning: true});
       this.users = await this.User.bulkCreate([
-        { id: randint() },
-        { id: randint() },
-        { id: randint() },
-        { id: randint() },
-        { id: randint() },
-        { id: randint() },
-        { id: randint() },
-        { id: randint() },
-        { id: randint() }
+        { id: randint(), awesome: false},
+        { id: randint(), awesome: true },
+        { id: randint(), awesome: true },
+        { id: randint(), awesome: false },
+        { id: randint(), awesome: true },
+        { id: randint(), awesome: false },
+        { id: randint(), awesome: true },
+        { id: randint(), awesome: true },
+        { id: randint(), awesome: true }
       ], {returning: true});
 
       await this.project1.setMembers(this.users.slice(0, 4));
@@ -100,6 +101,45 @@ describe('belongsTo', function () {
       ]);
 
       expect(this.User.findAll, 'was called twice');
+    });
+
+    it('batches to multiple findAll call with where + limit', async function () {
+      let members1 = this.project1.getMembers({ where: { awesome: true }, limit: 1 })
+        , members2 = this.project2.getMembers({ where: { awesome: true }, limit: 1 })
+        , members3 = this.project3.getMembers({ where: { awesome: true }, limit: 2 });
+
+      await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[1]
+      ]);
+      await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[4]
+      ]);
+      await expect(members3, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[6],
+        this.users[7]
+      ]);
+
+      expect(this.User.findAll, 'was called twice');
+      expect(this.User.findAll, 'to have a call satisfying', [{
+        where: {
+          awesome: true
+        },
+        groupedLimit: {
+          on: this.Project.Users.paired,
+          limit: 1,
+          values: [this.project1.get('id'), this.project2.get('id')]
+        }
+      }]);
+      expect(this.User.findAll, 'to have a call satisfying', [{
+        where: {
+          awesome: true
+        },
+        groupedLimit: {
+          on: this.Project.Users.paired,
+          limit: 2,
+          values: [this.project3.get('id')]
+        }
+      }]);
     });
   });
 });
