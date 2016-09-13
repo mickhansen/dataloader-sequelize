@@ -38,13 +38,22 @@ function mapResult(attribute, keys, options, result) {
   });
 }
 
-function getCacheKey(model, attribute, options) {
-  return model.name + attribute + JSON.stringify(options, (key, value) => {
+export function getCacheKey(model, attribute, options) {
+  return model.name + attribute + JSON.stringify(options, function replacer(key, value) {
+    if (!key) {
+      // We were called with the whole object
+      return value;
+    }
+
     if (key === 'association') {
       return value.associationType + value.target.name + value.as;
     }
 
-    return value;
+    if (['attributes', 'limit', 'groupedLimit', 'order'].indexOf(key) !== -1) {
+      return value;
+    }
+
+    return undefined; // skip
   });
 }
 

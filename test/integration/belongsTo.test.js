@@ -1,7 +1,7 @@
 import Sequelize from 'sequelize';
-import {connection, randint} from './helper';
+import {connection, randint} from '../helper';
 import sinon from 'sinon';
-import dataloaderSequelize from '../src';
+import dataloaderSequelize from '../../src';
 import Promise from 'bluebird';
 import expect from 'unexpected';
 

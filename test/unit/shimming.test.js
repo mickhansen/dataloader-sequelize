@@ -1,5 +1,5 @@
-import {connection} from './helper';
-import dataloaderSequelize from '../src';
+import {connection} from '../helper';
+import dataloaderSequelize from '../../src';
 import expect from 'unexpected';
 
 describe('shimming', function () {

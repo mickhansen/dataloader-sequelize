@@ -1,6 +1,6 @@
-import {connection, randint} from './helper';
+import {connection, randint} from '../helper';
 import sinon from 'sinon';
-import dataloaderSequelize from '../src';
+import dataloaderSequelize from '../../src';
 import expect from 'unexpected';
 import Sequelize from 'sequelize';
 

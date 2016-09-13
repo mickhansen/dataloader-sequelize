@@ -12,7 +12,9 @@
     "lint": "eslint src",
     "build": "babel src -d lib",
     "test": "docker-compose run --rm dev npm run test:raw",
-    "test:raw": "npm run lint && NODE_ENV=test mocha $npm_package_options_mocha 'test/**.test.js'"
+    "test:raw": "npm run lint && npm run test:unit && npm run test:integration",
+    "test:unit": "NODE_ENV=test mocha $npm_package_options_mocha 'test/unit/**.test.js'",
+    "test:integration": "NODE_ENV=test mocha $npm_package_options_mocha 'test/integration/**.test.js'"
   },
   "devDependencies": {
     "babel-cli": "^6.10.1",
