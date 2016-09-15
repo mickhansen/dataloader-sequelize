@@ -149,6 +149,8 @@ function loaderForModel(model, attribute, options = {}) {
 }
 
 function shimModel(target) {
+  if (target.findById.__wrapped) return;
+
   shimmer.massWrap(target, ['findById', 'findByPrimary'], original => {
     return function batchedFindById(id, options = {}) {
       if ([null, undefined].indexOf(id) !== -1) {
@@ -163,6 +165,8 @@ function shimModel(target) {
 }
 
 function shimBelongsTo(target) {
+  if (target.get.__wrapped) return;
+
   shimmer.wrap(target, 'get', original => {
     return function batchedGetBelongsTo(instance, options = {}) {
       // targetKeyIsPrimary already handled by sequelize (maps to findById)
@@ -177,6 +181,8 @@ function shimBelongsTo(target) {
 }
 
 function shimHasOne(target) {
+  if (target.get.__wrapped) return;
+
   shimmer.wrap(target, 'get', original => {
     return function batchedGetHasOne(instance, options = {}) {
       if (Array.isArray(instance) || options.include || options.transaction) {
@@ -190,6 +196,8 @@ function shimHasOne(target) {
 }
 
 function shimHasMany(target) {
+  if (target.get.__wrapped) return;
+
   shimmer.wrap(target, 'get', original => {
     return function bathedGetHasMany(instances, options = {}) {
       if (options.include || options.transaction) {
@@ -211,6 +219,8 @@ function shimHasMany(target) {
 }
 
 function shimBelongsToMany(target) {
+  if (target.get.__wrapped) return;
+
   shimmer.wrap(target, 'get', original => {
     return function bathedGetHasMany(instances, options = {}) {
       assert(this.paired, '.paired missing on belongsToMany association. You need to set up both sides of the association');

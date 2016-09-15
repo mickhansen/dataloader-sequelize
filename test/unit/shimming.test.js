@@ -3,6 +3,7 @@ import dataloaderSequelize from '../../src';
 import expect from 'unexpected';
 import sinon from 'sinon';
 import Promise from 'bluebird';
+import shimmer from 'shimmer';
 
 describe('shimming', function () {
   beforeEach(function () {
@@ -43,6 +44,13 @@ describe('shimming', function () {
       expect(this.User.Tasks.get, 'to be shimmed');
       expect(this.User.PrimaryTask.get, 'to be shimmed');
       expect(this.Task.User.get, 'to be shimmed');
+    });
+
+    it('shims only once', function () {
+      this.sandbox.stub(shimmer, 'wrap');
+      dataloaderSequelize(connection);
+
+      expect(shimmer.wrap, 'was not called');
     });
   });
 
