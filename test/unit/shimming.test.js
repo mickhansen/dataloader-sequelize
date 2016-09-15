@@ -1,9 +1,13 @@
 import {connection} from '../helper';
 import dataloaderSequelize from '../../src';
 import expect from 'unexpected';
+import sinon from 'sinon';
+import Promise from 'bluebird';
+import shimmer from 'shimmer';
 
 describe('shimming', function () {
   beforeEach(function () {
+    this.sandbox = sinon.sandbox.create();
     this.User = connection.define('user');
     this.Task = connection.define('task');
 
@@ -12,20 +16,23 @@ describe('shimming', function () {
     this.Task.User = this.Task.belongsTo(this.User);
   });
 
+  afterEach(function () {
+    [
+      connection.Model.prototype.findByPrimary,
+      connection.Model.prototype.findById,
+      connection.Association.BelongsTo.prototype.get,
+      connection.Association.HasOne.prototype.get,
+      connection.Association.HasMany.prototype.get,
+      connection.Association.BelongsToMany.prototype.get
+    ].forEach(i => i.__unwrap && i.__unwrap());
+
+    this.sandbox.restore();
+    connection.modelManager.forEachModel(connection.modelManager.removeModel.bind(connection.modelManager));
+  });
+
   describe('sequelize constructor', function () {
     beforeEach(function () {
       dataloaderSequelize(connection);
-    });
-
-    afterEach(function () {
-      [
-        connection.Model.prototype.findByPrimary,
-        connection.Model.prototype.findById,
-        connection.Association.BelongsTo.prototype.get,
-        connection.Association.HasOne.prototype.get,
-        connection.Association.HasMany.prototype.get,
-        connection.Association.BelongsToMany.prototype.get
-      ].forEach(i => i.__unwrap());
     });
 
     it('shims all models', function () {
@@ -37,6 +44,13 @@ describe('shimming', function () {
       expect(this.User.Tasks.get, 'to be shimmed');
       expect(this.User.PrimaryTask.get, 'to be shimmed');
       expect(this.Task.User.get, 'to be shimmed');
+    });
+
+    it('shims only once', function () {
+      this.sandbox.stub(shimmer, 'wrap');
+      dataloaderSequelize(connection);
+
+      expect(shimmer.wrap, 'was not called');
     });
   });
 
@@ -71,9 +85,7 @@ describe('shimming', function () {
     });
 
     afterEach(function () {
-      [
-        this.User.Tasks.get
-      ].forEach(i => i.__unwrap());
+      this.User.Tasks.get.__unwrap();
     });
 
     it('does not shim models', function () {
@@ -88,11 +100,25 @@ describe('shimming', function () {
     });
   });
 
-  it('throws error for non-paired BTM', function () {
-    let UserTasks = this.User.belongsToMany(this.Task, { through: 'foobar' });
-    dataloaderSequelize(UserTasks);
+  describe('paired BTM', function () {
+    it('does not throw an error when attached to the prototype', async function () {
+      this.sandbox.stub(this.Task, 'findAll').resolves();
+      dataloaderSequelize(connection);
 
-    expect(() => UserTasks.get(), 'to throw');
+      let UserTasks = this.User.belongsToMany(this.Task, { through: 'foobar' });
+      this.Task.belongsToMany(this.User, { through: 'foobar' });
+
+      expect(() => UserTasks.get(this.User.build({ id: 42 })), 'not to throw');
+      await Promise.delay(1);
+      expect(this.Task.findAll, 'was called once');
+    });
+
+    it('throws error for non-paired BTM', function () {
+      let UserTasks = this.User.belongsToMany(this.Task, { through: 'foobar' });
+      dataloaderSequelize(UserTasks);
+
+      expect(() => UserTasks.get(this.User.build({ id: 42 })), 'to throw');
+    });
   });
 });
 

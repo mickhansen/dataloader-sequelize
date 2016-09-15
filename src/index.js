@@ -21,7 +21,6 @@ function mapResult(attribute, keys, options, result) {
         carry[key].push(row);
       }
 
-
       return carry;
     }, {});
   } else {
@@ -77,25 +76,26 @@ function loaderForBTM(model, attributes, options = {}) {
   assert(Array.isArray(attributes), 'Attributes for BTM loader should be an array');
   assert(attributes.length === 2, 'Attributes for BTM loader should have length two');
 
-  let cacheKey = getCacheKey(model, attributes, options);
+  let cacheKey = getCacheKey(model, attributes, options)
+    , association = options.association;
+  delete options.association;
 
   if (!cache.has(cacheKey)) {
     cache.set(cacheKey, new DataLoader(keys => {
       if (options.limit) {
         options.groupedLimit = {
-          on: options.association,
+          on: association,
           limit: options.limit,
           values: keys
         };
       } else {
         options.include = [{
-          association: options.association.manyFromSource,
+          association: association.manyFromSource,
           where: mergeWhere({
             [attributes[1]]: keys
           }, options.where)
         }];
       }
-      delete options.association;
 
       return model.findAll(options).then(mapResult.bind(null, attributes, keys, options));
     }));
@@ -149,8 +149,13 @@ function loaderForModel(model, attribute, options = {}) {
 }
 
 function shimModel(target) {
+  if (target.findById.__wrapped) return;
+
   shimmer.massWrap(target, ['findById', 'findByPrimary'], original => {
     return function batchedFindById(id, options = {}) {
+      if ([null, undefined].indexOf(id) !== -1) {
+        return Promise.resolve(null);
+      }
       if (options.transaction) {
         return original.apply(this, arguments);
       }
@@ -160,6 +165,8 @@ function shimModel(target) {
 }
 
 function shimBelongsTo(target) {
+  if (target.get.__wrapped) return;
+
   shimmer.wrap(target, 'get', original => {
     return function batchedGetBelongsTo(instance, options = {}) {
       // targetKeyIsPrimary already handled by sequelize (maps to findById)
@@ -174,6 +181,8 @@ function shimBelongsTo(target) {
 }
 
 function shimHasOne(target) {
+  if (target.get.__wrapped) return;
+
   shimmer.wrap(target, 'get', original => {
     return function batchedGetHasOne(instance, options = {}) {
       if (Array.isArray(instance) || options.include || options.transaction) {
@@ -187,6 +196,8 @@ function shimHasOne(target) {
 }
 
 function shimHasMany(target) {
+  if (target.get.__wrapped) return;
+
   shimmer.wrap(target, 'get', original => {
     return function bathedGetHasMany(instances, options = {}) {
       if (options.include || options.transaction) {
@@ -208,15 +219,17 @@ function shimHasMany(target) {
 }
 
 function shimBelongsToMany(target) {
+  if (target.get.__wrapped) return;
+
   shimmer.wrap(target, 'get', original => {
     return function bathedGetHasMany(instances, options = {}) {
-      assert(target.paired, '.paired missing on belongsToMany association. You need to set up both sides of the association');
+      assert(this.paired, '.paired missing on belongsToMany association. You need to set up both sides of the association');
 
       if (options.include || options.transaction) {
         return original.apply(this, arguments);
       }
 
-      let loader = loaderForBTM(this.target, [this.as, this.foreignKey], {
+      let loader = loaderForBTM(this.target, [this.paired.manyFromSource.as, this.foreignKey], {
         ...options,
         association: this.paired,
         multiple: true
