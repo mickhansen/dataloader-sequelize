@@ -65,7 +65,7 @@ describe('belongsToMany', function () {
           this.sandbox.spy(this.User, 'findAll');
         });
 
-        it('batches to a single findAll call', async function () {
+        it('batches to a single findAll call when getting', async function () {
           let members1 = this.project1.getMembers()
             , members2 = this.project2.getMembers();
 
@@ -88,6 +88,35 @@ describe('belongsToMany', function () {
               association: this.Project.Users.manyFromTarget,
               where: { projectId: [ this.project1.get('id'), this.project2.get('id') ] }
             }]
+          }]);
+        });
+
+        it('batches to a single findAll call when counting', async function () {
+          let project4 = await this.Project.create();
+
+          let members1 = this.project1.countMembers()
+            , members2 = this.project2.countMembers()
+            , members3 = project4.countMembers();
+
+          await expect(members1, 'to be fulfilled with', 4);
+          await expect(members2, 'to be fulfilled with', 4);
+          await expect(members3, 'to be fulfilled with', 0);
+
+          expect(this.User.findAll, 'was called once');
+          expect(this.User.findAll, 'to have a call satisfying', [{
+            attributes: [
+              [connection.fn('COUNT', connection.col(['user', 'id'].join('.'))), 'count']
+            ],
+            include: [{
+              attributes: [
+                'projectId'
+              ],
+              association: this.Project.Users.manyFromTarget,
+              where: { projectId: [ this.project1.get('id'), this.project2.get('id'), project4.get('id') ] }
+            }],
+            raw: true,
+            group: ['projectId'],
+            multiple: false
           }]);
         });
 

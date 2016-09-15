@@ -2,14 +2,14 @@ import Sequelize from 'sequelize';
 import shimmer from 'shimmer';
 import DataLoader from 'dataloader';
 import Promise from 'bluebird';
-import {groupBy, property, values} from 'lodash';
+import {groupBy, property, values, clone} from 'lodash';
 import LRU from 'lru-cache';
 import assert from 'assert';
 
 function mapResult(attribute, keys, options, result) {
   // Convert an array of results to an object of attribute (primary / foreign / target key) -> array of matching rows
-  if (Array.isArray(attribute)) {
-    // Belongs to many
+  if (Array.isArray(attribute) && options.multiple) {
+    // Regular belongs to many
     let [throughAttribute, foreignKey] = attribute;
     result = result.reduce((carry, row) => {
       for (const throughRow of row.get(throughAttribute)) {
@@ -24,6 +24,10 @@ function mapResult(attribute, keys, options, result) {
       return carry;
     }, {});
   } else {
+    if (Array.isArray(attribute)) {
+      // Belongs to many count is a raw query, so we have to get the attribute directly
+      attribute = attribute.join('.');
+    }
     result = groupBy(result, property(attribute));
   }
 
@@ -37,11 +41,15 @@ function mapResult(attribute, keys, options, result) {
   });
 }
 
-function stringifyValue(value) {
+function stringifyValue(value, key) {
   if (value instanceof Sequelize.Association) {
     return `${value.associationType},${value.target.name},${value.as}`;
   } else if (Array.isArray(value)) {
-    return value.sort().map(stringifyValue).join(',');
+    if (key !== 'order') {
+      // attribute order doesn't matter - order order definitely does
+      value = clone(value).sort();
+    }
+    return value.map(stringifyValue).join(',');
   } else if (typeof value === 'object') {
     return stringifyObject(value);
   }
@@ -52,11 +60,11 @@ function stringifyValue(value) {
 // depends on the order in which the properties were defined - which we don't like!
 // Additionally, JSON.stringify escapes strings, which we don't need here
 function stringifyObject(object, keys = Object.keys(object)) {
-  return keys.sort().map(key => `${key}:${stringifyValue(object[key])}`).join('|');
+  return keys.sort().map(key => `${key}:${stringifyValue(object[key], key)}`).join('|');
 }
 
 export function getCacheKey(model, attribute, options) {
-  options = stringifyObject(options, ['association', 'attributes', 'groupedLimit', 'limit', 'order', 'where']);
+  options = stringifyObject(options, ['association', 'attributes', 'groupedLimit', 'limit', 'offset', 'order', 'where']);
 
   return `${model.name}|${attribute}|${options}`;
 }
@@ -70,34 +78,37 @@ function mergeWhere(where, optionsWhere) {
   return where;
 }
 
-function loaderForBTM(model, attributes, options = {}) {
+function loaderForBTM(model, joinTableName, foreignKey, options = {}) {
   assert(options.include === undefined, 'options.include is not supported by model loader');
   assert(options.association !== undefined, 'options.association should be set for BTM loader');
-  assert(Array.isArray(attributes), 'Attributes for BTM loader should be an array');
-  assert(attributes.length === 2, 'Attributes for BTM loader should have length two');
 
-  let cacheKey = getCacheKey(model, attributes, options)
+  let attributes = [joinTableName, foreignKey]
+    , cacheKey = getCacheKey(model, attributes, options)
     , association = options.association;
   delete options.association;
 
   if (!cache.has(cacheKey)) {
     cache.set(cacheKey, new DataLoader(keys => {
-      if (options.limit) {
-        options.groupedLimit = {
+      let findOptions = Object.assign({}, options);
+      if (findOptions.limit) {
+        findOptions.groupedLimit = {
           on: association,
-          limit: options.limit,
+          limit: findOptions.limit,
           values: keys
         };
       } else {
-        options.include = [{
+        findOptions.include = [{
+          attributes: [foreignKey],
           association: association.manyFromSource,
           where: mergeWhere({
-            [attributes[1]]: keys
-          }, options.where)
+            [foreignKey]: keys
+          }, findOptions.where)
         }];
       }
 
-      return model.findAll(options).then(mapResult.bind(null, attributes, keys, options));
+      return model.findAll(findOptions).then(mapResult.bind(null, attributes, keys, findOptions));
+    }, {
+      cache: false
     }));
   }
 
@@ -110,39 +121,26 @@ function loaderForModel(model, attribute, options = {}) {
   let cacheKey = getCacheKey(model, attribute, options);
 
   if (!cache.has(cacheKey)) {
-    if (options.limit) {
-      cache.set(cacheKey, new DataLoader(keys => {
-        if (keys.length === 1) {
-          return model.findAll({
-            where: mergeWhere({
-              [attribute]: keys[0]
-            }, options.where),
-            limit: options.limit
-          }).then(mapResult.bind(null, attribute, keys, options));
-        }
+    cache.set(cacheKey, new DataLoader(keys => {
+      const findOptions = Object.assign({}, options);
 
-        return model.findAll({
-          groupedLimit: {
-            limit: options.limit,
-            on: attribute,
-            values: keys
-          },
-          where: options.where
-        }).then(mapResult.bind(null, attribute, keys, options));
-      }, {
-        cache: false
-      }));
-    } else {
-      cache.set(cacheKey, new DataLoader(keys => {
-        return model.findAll({
-          where: mergeWhere({
-            [attribute]: keys
-          }, options.where),
-        }).then(mapResult.bind(null, attribute, keys, options));
-      }, {
-        cache: false
-      }));
-    }
+      if (findOptions.limit && keys.length > 1) {
+        findOptions.groupedLimit = {
+          limit: findOptions.limit,
+          on: attribute,
+          values: keys
+        };
+        delete findOptions.limit;
+      } else {
+        findOptions.where = mergeWhere({
+          [attribute]: keys
+        }, findOptions.where);
+      }
+
+      return model.findAll(findOptions).then(mapResult.bind(null, attribute, keys, findOptions));
+    }, {
+      cache: false
+    }));
   }
 
   return cache.get(cacheKey);
@@ -169,12 +167,11 @@ function shimBelongsTo(target) {
 
   shimmer.wrap(target, 'get', original => {
     return function batchedGetBelongsTo(instance, options = {}) {
-      // targetKeyIsPrimary already handled by sequelize (maps to findById)
-      if (this.targetKeyIsPrimary || Array.isArray(instance) || options.include || options.transaction) {
+      if (Array.isArray(instance) || options.include || options.transaction) {
         return original.apply(this, arguments);
       }
 
-      let loader = loaderForModel(this.target, this.targetKey);
+      let loader = loaderForModel(this.target, this.targetKey, options);
       return loader.load(instance.get(this.foreignKey));
     };
   });
@@ -189,7 +186,7 @@ function shimHasOne(target) {
         return original.apply(this, arguments);
       }
 
-      let loader = loaderForModel(this.target, this.foreignKey);
+      let loader = loaderForModel(this.target, this.foreignKey, options);
       return loader.load(instance.get(this.sourceKey));
     };
   });
@@ -200,19 +197,36 @@ function shimHasMany(target) {
 
   shimmer.wrap(target, 'get', original => {
     return function bathedGetHasMany(instances, options = {}) {
+      let isCount = false;
       if (options.include || options.transaction) {
         return original.apply(this, arguments);
       }
 
+      const attributes = options.attributes;
+      if (attributes && attributes.length === 1 && attributes[0][0].fn && attributes[0][0].fn === 'COUNT' && !options.group) {
+        // Phew, what an if statement - It avoids duplicating the count code from sequelize,
+        // at the expense of slightly tighter coupling to the sequelize implementation
+        options.attributes.push(this.foreignKey);
+        options.multiple = false;
+        options.group = [this.foreignKey];
+        delete options.plain;
+        isCount = true;
+      }
+
       let loader = loaderForModel(this.target, options.limit ? this.foreignKeyField : this.foreignKey, {
-        ...options,
-        multiple: true
+        multiple: true,
+        ...options
       });
 
       if (Array.isArray(instances)) {
         return Promise.map(instances, instance => loader.load(instance.get(this.source.primaryKeyAttribute)));
       } else {
-        return loader.load(instances.get(this.source.primaryKeyAttribute));
+        return loader.load(instances.get(this.source.primaryKeyAttribute)).then(result => {
+          if (isCount && !result) {
+            result = { count: 0 };
+          }
+          return result;
+        });
       }
     };
   });
@@ -223,22 +237,38 @@ function shimBelongsToMany(target) {
 
   shimmer.wrap(target, 'get', original => {
     return function bathedGetHasMany(instances, options = {}) {
+      let isCount = false;
       assert(this.paired, '.paired missing on belongsToMany association. You need to set up both sides of the association');
 
       if (options.include || options.transaction) {
         return original.apply(this, arguments);
       }
 
-      let loader = loaderForBTM(this.target, [this.paired.manyFromSource.as, this.foreignKey], {
-        ...options,
+      const attributes = options.attributes;
+      if (attributes && attributes.length === 1 && attributes[0][0].fn && attributes[0][0].fn === 'COUNT' && !options.group) {
+        // Phew, what an if statement - It avoids duplicating the count code from sequelize,
+        // at the expense of slightly tighter coupling to the sequelize implementation
+        options.multiple = false;
+        options.group = [this.foreignKey];
+        delete options.plain;
+        isCount = true;
+      }
+
+      let loader = loaderForBTM(this.target, this.paired.manyFromSource.as, this.foreignKey, {
         association: this.paired,
-        multiple: true
+        multiple: true,
+        ...options
       });
 
       if (Array.isArray(instances)) {
         return Promise.map(instances, instance => loader.load(instance.get(this.source.primaryKeyAttribute)));
       } else {
-        return loader.load(instances.get(this.source.primaryKeyAttribute));
+        return loader.load(instances.get(this.source.primaryKeyAttribute)).then(result => {
+          if (isCount && !result) {
+            result = { count: 0 };
+          }
+          return result;
+        });
       }
     };
   });
