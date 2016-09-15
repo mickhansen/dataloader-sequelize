@@ -21,7 +21,6 @@ function mapResult(attribute, keys, options, result) {
         carry[key].push(row);
       }
 
-
       return carry;
     }, {});
   } else {
@@ -152,6 +151,9 @@ function loaderForModel(model, attribute, options = {}) {
 function shimModel(target) {
   shimmer.massWrap(target, ['findById', 'findByPrimary'], original => {
     return function batchedFindById(id, options = {}) {
+      if ([null, undefined].indexOf(id) !== -1) {
+        return Promise.resolve(null);
+      }
       if (options.transaction) {
         return original.apply(this, arguments);
       }

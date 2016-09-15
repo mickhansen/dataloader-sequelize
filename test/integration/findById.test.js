@@ -30,6 +30,11 @@ describe('findById', function () {
       ], { returning: true });
     });
 
+    it('works with null', async function () {
+      await expect(this.User.findById(null), 'to be fulfilled with', null);
+      expect(this.User.findAll, 'was not called');
+    });
+
     it('batches to a single findAll call', async function () {
       let user1 = this.User.findById(this.users[2].get('id'))
         , user2 = this.User.findById(this.users[1].get('id'));
