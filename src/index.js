@@ -77,25 +77,26 @@ function loaderForBTM(model, attributes, options = {}) {
   assert(Array.isArray(attributes), 'Attributes for BTM loader should be an array');
   assert(attributes.length === 2, 'Attributes for BTM loader should have length two');
 
-  let cacheKey = getCacheKey(model, attributes, options);
+  let cacheKey = getCacheKey(model, attributes, options)
+    , association = options.association;
+  delete options.association;
 
   if (!cache.has(cacheKey)) {
     cache.set(cacheKey, new DataLoader(keys => {
       if (options.limit) {
         options.groupedLimit = {
-          on: options.association,
+          on: association,
           limit: options.limit,
           values: keys
         };
       } else {
         options.include = [{
-          association: options.association.manyFromSource,
+          association: association.manyFromSource,
           where: mergeWhere({
             [attributes[1]]: keys
           }, options.where)
         }];
       }
-      delete options.association;
 
       return model.findAll(options).then(mapResult.bind(null, attributes, keys, options));
     }));
@@ -210,13 +211,13 @@ function shimHasMany(target) {
 function shimBelongsToMany(target) {
   shimmer.wrap(target, 'get', original => {
     return function bathedGetHasMany(instances, options = {}) {
-      assert(target.paired, '.paired missing on belongsToMany association. You need to set up both sides of the association');
+      assert(this.paired, '.paired missing on belongsToMany association. You need to set up both sides of the association');
 
       if (options.include || options.transaction) {
         return original.apply(this, arguments);
       }
 
-      let loader = loaderForBTM(this.target, [this.as, this.foreignKey], {
+      let loader = loaderForBTM(this.target, [this.paired.manyFromSource.as, this.foreignKey], {
         ...options,
         association: this.paired,
         multiple: true
