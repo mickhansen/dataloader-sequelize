@@ -14,7 +14,8 @@
     "test": "docker-compose run --rm dev npm run test:raw",
     "test:raw": "npm run lint && npm run test:unit && npm run test:integration",
     "test:unit": "NODE_ENV=test mocha $npm_package_options_mocha 'test/unit/**.test.js'",
-    "test:integration": "NODE_ENV=test mocha $npm_package_options_mocha 'test/integration/**.test.js'"
+    "test:integration": "NODE_ENV=test mocha $npm_package_options_mocha 'test/integration/**.test.js'",
+    "cover": "babel-node node_modules/.bin/isparta cover --excludes **/resources/** _mocha -- $npm_package_options_mocha 'test/**/*.test.js'"
   },
   "devDependencies": {
     "babel-cli": "^6.10.1",
@@ -25,6 +26,7 @@
     "babel-register": "^6.9.0",
     "bluebird": "^3.4.6",
     "eslint": "^3.0.0",
+    "isparta": "^4.0.0",
     "mocha": "^3.0.0",
     "pg": "^6.1.0",
     "sequelize": "^3.24.3",
