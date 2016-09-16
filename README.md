@@ -1,6 +1,9 @@
 # dataloader-sequelize
 Batching and simplification of Sequelize with facebook/dataloader
 
+[![Build Status](https://circleci.com/gh/mickhansen/dataloader-sequelize.svg)](https://circleci.com/gh/mickhansen/dataloader-sequelize)
+[![Coverage](https://codecov.io/gh/mickhansen/dataloader-sequelize/branch/master/graph/badge.svg)](https://codecov.io/gh/mickhansen/dataloader-sequelize)
+
 ## What it does
 ```js
 const User = sequelize.define('user');
