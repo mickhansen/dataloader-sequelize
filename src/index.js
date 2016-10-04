@@ -171,8 +171,12 @@ function shimBelongsTo(target) {
         return original.apply(this, arguments);
       }
 
+      let foreignKeyValue = instance.get(this.foreignKey);
+      if (!foreignKeyValue) {
+        return Promise.resolve(null);
+      }
       let loader = loaderForModel(this.target, this.targetKey, options);
-      return loader.load(instance.get(this.foreignKey));
+      return loader.load(foreignKeyValue);
     };
   });
 }
