@@ -100,9 +100,9 @@ function loaderForBTM(model, joinTableName, foreignKey, options = {}) {
         findOptions.include = [{
           attributes: [foreignKey],
           association: association.manyFromSource,
-          where: mergeWhere({
+          where: {
             [foreignKey]: keys
-          }, findOptions.where)
+          }
         }];
       }
 
