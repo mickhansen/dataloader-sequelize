@@ -143,6 +143,32 @@ describe('belongsToMany', function () {
           expect(this.User.findAll, 'was called twice');
         });
 
+        it('batches to multiple findAll call with where', async function () {
+          let members1 = this.project1.getMembers({ where: { awesome: true } })
+            , members2 = this.project2.getMembers({ where: { awesome: false } });
+
+          await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+            this.users[1],
+            this.users[2],
+          ]);
+          await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+            this.users[3],
+            this.users[5]
+          ]);
+
+          expect(this.User.findAll, 'was called twice');
+          expect(this.User.findAll, 'to have a call satisfying', [{
+            where: {
+              awesome: true
+            },
+          }]);
+          expect(this.User.findAll, 'to have a call satisfying', [{
+            where: {
+              awesome: true
+            },
+          }]);
+        });
+
         it('batches to multiple findAll call with where + limit', async function () {
           let members1 = this.project1.getMembers({ where: { awesome: true }, limit: 1 })
             , members2 = this.project2.getMembers({ where: { awesome: true }, limit: 1 })
@@ -196,6 +222,7 @@ describe('belongsToMany', function () {
             }
           }]);
         });
+
       });
     });
   });
