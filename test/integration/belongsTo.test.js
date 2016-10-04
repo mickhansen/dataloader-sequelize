@@ -24,7 +24,7 @@ describe('belongsTo', function () {
         as: 'owner'
       });
 
-      dataloaderSequelize(this.User);
+      dataloaderSequelize(this.Project);
 
       await connection.sync({
         force: true
@@ -34,7 +34,8 @@ describe('belongsTo', function () {
         { id: randint() },
         { id: randint() }
       ], { returning: true });
-      [this.project1, this.project2] = await this.Project.bulkCreate([
+      [this.project1, this.project2, this.project3] = await this.Project.bulkCreate([
+        { id: randint() },
         { id: randint() },
         { id: randint() }
       ], { returning: true });
@@ -59,6 +60,11 @@ describe('belongsTo', function () {
           id: [this.user1.get('id'), this.user2.get('id')]
         }
       }]);
+    });
+
+    it('works for project without owner', async function () {
+      expect(await this.project3.getOwner(), 'to equal', null);
+      expect(this.User.findAll, 'was not called');
     });
   });
 
