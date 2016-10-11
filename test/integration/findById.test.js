@@ -49,6 +49,16 @@ describe('findById', function () {
         }
       }]);
     });
+
+    it('supports rejectOnEmpty', async function () {
+      let user1 = this.User.findById(this.users[2].get('id'), { rejectOnEmpty: true })
+        , user2 = this.User.findById(42, { rejectOnEmpty: true })
+        , user3 = this.User.findById(42);
+
+      await expect(user1, 'to be fulfilled with', this.users[2]);
+      await expect(user2, 'to be rejected');
+      await expect(user3, 'to be fulfilled with', null);
+    });
   });
 
   describe('other primary key', function () {

@@ -20,7 +20,8 @@ describe('hasOne', function () {
       force: true
     });
 
-    [this.user1, this.user2] = await this.User.bulkCreate([
+    [this.user1, this.user2, this.user3] = await this.User.bulkCreate([
+      { id: randint() },
       { id: randint() },
       { id: randint() }
     ], { returning: true });
@@ -53,5 +54,15 @@ describe('hasOne', function () {
         ownerId: [this.user1.get('id'), this.user2.get('id')]
       }
     }]);
+  });
+
+  it('supports rejectOnEmpty', async function () {
+    let project1 = this.user1.getMainProject({ rejectOnEmpty: true })
+      , project2 = this.user3.getMainProject({ rejectOnEmpty: true })
+      , project3 = this.user3.getMainProject();
+
+    await expect(project1, 'to be fulfilled with', this.project1);
+    await expect(project2, 'to be rejected with', new connection.EmptyResultError());
+    await expect(project3, 'to be fulfilled with', null);
   });
 });

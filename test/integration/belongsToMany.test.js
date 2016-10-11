@@ -40,7 +40,8 @@ describe('belongsToMany', function () {
             force: true
           });
 
-          [this.project1, this.project2, this.project3] = await this.Project.bulkCreate([
+          [this.project1, this.project2, this.project3, this.project4] = await this.Project.bulkCreate([
+            { id: randint() },
             { id: randint() },
             { id: randint() },
             { id: randint() }
@@ -89,6 +90,16 @@ describe('belongsToMany', function () {
               where: { projectId: [ this.project1.get('id'), this.project2.get('id') ] }
             }]
           }]);
+        });
+
+        it('supports rejectOnEmpty', async function () {
+          let members1 = this.project1.getMembers({ rejectOnEmpty: true })
+            , members2 = this.project4.getMembers({ rejectOnEmpty: true })
+            , members3 = this.project4.getMembers();
+
+          await expect(members1, 'to be fulfilled with', Array);
+          await expect(members2, 'to be rejected');
+          await expect(members3, 'to be fulfilled with', []);
         });
 
         it('batches to a single findAll call when counting', async function () {

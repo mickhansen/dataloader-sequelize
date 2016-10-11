@@ -2,7 +2,7 @@ import Sequelize from 'sequelize';
 import shimmer from 'shimmer';
 import DataLoader from 'dataloader';
 import Promise from 'bluebird';
-import {groupBy, property, values, clone} from 'lodash';
+import {groupBy, property, values, clone, isEmpty} from 'lodash';
 import LRU from 'lru-cache';
 import assert from 'assert';
 
@@ -78,6 +78,20 @@ function mergeWhere(where, optionsWhere) {
   return where;
 }
 
+function rejectOnEmpty(options, result) {
+  if (isEmpty(result) && options.rejectOnEmpty) {
+    if (typeof options.rejectOnEmpty === 'function') {
+      throw new options.rejectOnEmpty();
+    } else if (typeof options.rejectOnEmpty === 'object') {
+      throw options.rejectOnEmpty;
+    } else {
+      throw new Sequelize.EmptyResultError();
+    }
+  }
+
+  return result;
+}
+
 function loaderForBTM(model, joinTableName, foreignKey, options = {}) {
   assert(options.include === undefined, 'options.include is not supported by model loader');
   assert(options.association !== undefined, 'options.association should be set for BTM loader');
@@ -90,6 +104,7 @@ function loaderForBTM(model, joinTableName, foreignKey, options = {}) {
   if (!cache.has(cacheKey)) {
     cache.set(cacheKey, new DataLoader(keys => {
       let findOptions = Object.assign({}, options);
+      delete findOptions.rejectOnEmpty;
       if (findOptions.limit) {
         findOptions.groupedLimit = {
           on: association,
@@ -123,6 +138,7 @@ function loaderForModel(model, attribute, options = {}) {
   if (!cache.has(cacheKey)) {
     cache.set(cacheKey, new DataLoader(keys => {
       const findOptions = Object.assign({}, options);
+      delete findOptions.rejectOnEmpty;
 
       if (findOptions.limit && keys.length > 1) {
         findOptions.groupedLimit = {
@@ -157,7 +173,7 @@ function shimModel(target) {
       if (options.transaction) {
         return original.apply(this, arguments);
       }
-      return loaderForModel(this, this.primaryKeyAttribute).load(id);
+      return loaderForModel(this, this.primaryKeyAttribute).load(id).then(rejectOnEmpty.bind(null, options));
     };
   });
 }
@@ -172,11 +188,13 @@ function shimBelongsTo(target) {
       }
 
       let foreignKeyValue = instance.get(this.foreignKey);
-      if (!foreignKeyValue) {
-        return Promise.resolve(null);
-      }
-      let loader = loaderForModel(this.target, this.targetKey, options);
-      return loader.load(foreignKeyValue);
+      return Promise.resolve().then(() => {
+        if (!foreignKeyValue) {
+          return Promise.resolve(null);
+        }
+        let loader = loaderForModel(this.target, this.targetKey, options);
+        return loader.load(foreignKeyValue);
+      }).then(rejectOnEmpty.bind(null, options));
     };
   });
 }
@@ -191,7 +209,7 @@ function shimHasOne(target) {
       }
 
       let loader = loaderForModel(this.target, this.foreignKey, options);
-      return loader.load(instance.get(this.sourceKey));
+      return loader.load(instance.get(this.sourceKey)).then(rejectOnEmpty.bind(null, options));
     };
   });
 }
@@ -230,7 +248,7 @@ function shimHasMany(target) {
             result = { count: 0 };
           }
           return result;
-        });
+        }).then(rejectOnEmpty.bind(null, options));
       }
     };
   });
@@ -272,7 +290,7 @@ function shimBelongsToMany(target) {
             result = { count: 0 };
           }
           return result;
-        });
+        }).then(rejectOnEmpty.bind(null, options));
       }
     };
   });
