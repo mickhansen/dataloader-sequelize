@@ -11,10 +11,10 @@
     "prepublish": "npm run build",
     "lint": "eslint src",
     "build": "babel src -d lib",
-    "test": "docker-compose run --rm dev npm run test:raw",
-    "test:raw": "npm run lint && npm run test:unit && npm run test:integration",
+    "test": "npm run lint && npm run test:unit && npm run test:integration",
     "test:unit": "NODE_ENV=test mocha $npm_package_options_mocha 'test/unit/**.test.js'",
-    "test:integration": "NODE_ENV=test mocha $npm_package_options_mocha 'test/integration/**.test.js'",
+    "test:integration": "docker-compose run --rm -e NODE_ENV=test dev npm run test:integration:raw",
+    "test:integration:raw": "mocha $npm_package_options_mocha 'test/integration/**.test.js'",
     "cover": "babel-node node_modules/.bin/isparta cover --excludes **/resources/** _mocha -- $npm_package_options_mocha 'test/**/*.test.js'"
   },
   "devDependencies": {

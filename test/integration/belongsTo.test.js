@@ -66,6 +66,16 @@ describe('belongsTo', function () {
       expect(await this.project3.getOwner(), 'to equal', null);
       expect(this.User.findAll, 'was not called');
     });
+
+    it('supports rejectOnEmpty', async function () {
+      let user1 = this.project1.getOwner({ rejectOnEmpty: Error })
+        , user2 = this.project3.getOwner({ rejectOnEmpty: Error })
+        , user3 = this.project3.getOwner();
+
+      await expect(user1, 'to be fulfilled with', this.user1);
+      await expect(user2, 'to be rejected with', Error);
+      await expect(user3, 'to be fulfilled with', null);
+    });
   });
 
   describe('with targetKey', function () {

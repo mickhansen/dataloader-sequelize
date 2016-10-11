@@ -29,7 +29,8 @@ describe('hasMany', function () {
         force: true
       });
 
-      [this.project1, this.project2, this.project3] = await this.Project.bulkCreate([
+      [this.project1, this.project2, this.project3, this.project4] = await this.Project.bulkCreate([
+        { id: randint() },
         { id: randint() },
         { id: randint() },
         { id: randint() }
@@ -76,6 +77,17 @@ describe('hasMany', function () {
           projectId: [this.project1.get('id'), this.project2.get('id')]
         }
       }]);
+    });
+
+    it('supports rejectOnEmpty', async function () {
+      let error = new Error('FooBar!');
+      let members1 = this.project1.getMembers({ rejectOnEmpty: error })
+        , members2 = this.project4.getMembers({ rejectOnEmpty: error })
+        , members3 = this.project4.getMembers();
+
+      await expect(members1, 'to be fulfilled with', Array);
+      await expect(members2, 'to be rejected with', 'FooBar!');
+      await expect(members3, 'to be fulfilled with', []);
     });
 
     it('batches to a single findAll call when counting', async function () {
