@@ -42,7 +42,7 @@ function mapResult(attribute, keys, options, result) {
 }
 
 function stringifyValue(value, key) {
-  if (value instanceof Sequelize.Association) {
+  if (value.associationType) {
     return `${value.associationType},${value.target.name},${value.as}`;
   } else if (Array.isArray(value)) {
     if (key !== 'order') {
