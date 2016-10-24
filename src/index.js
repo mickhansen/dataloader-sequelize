@@ -42,7 +42,7 @@ function mapResult(attribute, keys, options, result) {
 }
 
 function stringifyValue(value, key) {
-  if (value.associationType) {
+  if (value && value.associationType) {
     return `${value.associationType},${value.target.name},${value.as}`;
   } else if (Array.isArray(value)) {
     if (key !== 'order') {
