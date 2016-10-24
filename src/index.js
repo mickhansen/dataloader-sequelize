@@ -297,10 +297,12 @@ function shimBelongsToMany(target) {
 }
 
 function shimAssociation(association) {
-  if (association instanceof Sequelize.Association.BelongsTo) shimBelongsTo(association);
-  else if (association instanceof Sequelize.Association.HasOne) shimHasOne(association);
-  else if (association instanceof Sequelize.Association.HasMany) shimHasMany(association);
-  else if (association instanceof Sequelize.Association.BelongsToMany) shimBelongsToMany(association);
+  switch (association.associationType) {
+    case 'BelongsTo': return shimBelongsTo(association);
+    case 'HasOne': return shimHasOne(association);
+    case 'HasMany': return shimHasMany(association);
+    case 'BelongsToMany': return shimBelongsToMany(association);
+  }
 }
 
 let cache;
@@ -313,14 +315,17 @@ export default function (target, options = {}) {
     max: 500
   };
 
-  cache = LRU(options);
+  if (!cache) {
+    cache = LRU(options);
+  }
 
-  if (target instanceof Sequelize.Association) {
+  if (target.associationType) {
     shimAssociation(target);
-  } else if (target instanceof Sequelize.Model) {
+  } else if (target.toString().includes('SequelizeModel')) {
     shimModel(target);
     values(target.associations).forEach(shimAssociation);
-  } else if (target instanceof Sequelize) {
+  } else {
+    // Assume target is the sequelize constructor
     shimModel(target.Model.prototype);
     shimBelongsTo(target.Association.BelongsTo.prototype);
     shimHasOne(target.Association.HasOne.prototype);
