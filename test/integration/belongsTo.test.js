@@ -21,7 +21,11 @@ describe('belongsTo', function () {
       this.Project = connection.define('project');
 
       this.Project.belongsTo(this.User, {
-        as: 'owner'
+        as: 'owner',
+        foreignKey: {
+          name: 'ownerId',
+          field: 'owner_id'
+        }
       });
 
       dataloaderSequelize(this.Project);
@@ -83,11 +87,20 @@ describe('belongsTo', function () {
       this.sandbox = sinon.sandbox.create();
 
       this.User = connection.define('user', {
-        someId: Sequelize.INTEGER
+        someId: {
+          type: Sequelize.INTEGER,
+          field: 'some_id'
+        }
       });
-      this.Project = connection.define('project');
+      this.Project = connection.define('project', {
+        ownerId: {
+          type: Sequelize.INTEGER,
+          field: 'owner_id'
+        }
+      });
 
       this.Project.belongsTo(this.User, {
+        foreignKey: 'ownerId',
         targetKey: 'someId',
         as: 'owner',
         constraints: false
@@ -97,10 +110,10 @@ describe('belongsTo', function () {
         force: true
       });
 
-      [this.user1, this.user2] = await this.User.bulkCreate([
-        { id: randint(), someId: randint() },
-        { id: randint(), someId: randint() }
-      ], { returning: true });
+      [this.user1, this.user2] = await Promise.join(
+        this.User.create({ id: randint(), someId: randint() }),
+        this.User.create({ id: randint(), someId: randint() })
+      );
       [this.project1, this.project2] = await this.Project.bulkCreate([
         { id: randint() },
         { id: randint() }
@@ -124,7 +137,7 @@ describe('belongsTo', function () {
       expect(this.User.findAll, 'was called once');
       expect(this.User.findAll, 'to have a call satisfying', [{
         where: {
-          someId: [this.user1.get('someId'), this.user2.get('someId')]
+          some_id: [this.project1.get('ownerId'), this.project2.get('ownerId')]
         }
       }]);
     });

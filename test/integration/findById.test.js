@@ -134,7 +134,7 @@ describe('findById', function () {
       expect(this.User.findAll, 'was called once');
       expect(this.User.findAll, 'to have a call satisfying', [{
         where: {
-          id: [this.users[2].get('id'), this.users[1].get('id')]
+          identifier: [this.users[2].get('id'), this.users[1].get('id')]
         }
       }]);
     });

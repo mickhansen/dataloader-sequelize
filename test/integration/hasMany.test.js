@@ -22,7 +22,11 @@ describe('hasMany', function () {
       this.Project = connection.define('project');
 
       this.Project.hasMany(this.User, {
-        as: 'members'
+        as: 'members',
+        foreignKey: {
+          name: 'projectId',
+          field: 'project_id'
+        }
       });
 
       await connection.sync({
@@ -74,7 +78,7 @@ describe('hasMany', function () {
       expect(this.User.findAll, 'was called once');
       expect(this.User.findAll, 'to have a call satisfying', [{
         where: {
-          projectId: [this.project1.get('id'), this.project2.get('id')]
+          project_id: [this.project1.get('id'), this.project2.get('id')]
         }
       }]);
     });
@@ -104,7 +108,7 @@ describe('hasMany', function () {
       expect(this.User.findAll, 'was called once');
       expect(this.User.findAll, 'to have a call satisfying', [{
         where: {
-          projectId: [this.project1.get('id'), this.project2.get('id'), project4.get('id')]
+          project_id: [this.project1.get('id'), this.project2.get('id'), project4.get('id')]
         },
         attributes: [
           [connection.fn('COUNT', connection.col('id')), 'count'],
@@ -133,7 +137,7 @@ describe('hasMany', function () {
       expect(this.User.findAll, 'to have a call satisfying', [{
         groupedLimit: {
           limit: 2,
-          on: 'projectId',
+          on: 'project_id',
           values: [ this.project1.get('id'), this.project2.get('id') ]
         }
       }]);
@@ -161,14 +165,14 @@ describe('hasMany', function () {
       expect(this.User.findAll, 'was called twice');
       expect(this.User.findAll, 'to have a call satisfying', [{
         where: {
-          projectId: [this.project1.get('id')],
+          project_id: [this.project1.get('id')],
         },
         limit: 4
       }]);
       expect(this.User.findAll, 'to have a call satisfying', [{
         groupedLimit: {
           limit: 2,
-          on: 'projectId',
+          on: 'project_id',
           values: [ this.project2.get('id'), this.project3.get('id') ]
         }
       }]);
@@ -196,7 +200,7 @@ describe('hasMany', function () {
       expect(this.User.findAll, 'to have a call satisfying', [{
         where: {
           $and: [
-            { projectId: [this.project1.get('id'), this.project3.get('id')]},
+            { project_id: [this.project1.get('id'), this.project3.get('id')]},
             { awesome: true }
           ]
         }
@@ -204,7 +208,7 @@ describe('hasMany', function () {
       expect(this.User.findAll, 'to have a call satisfying', [{
         where: {
           $and: [
-            { projectId: [this.project2.get('id')]},
+            { project_id: [this.project2.get('id')]},
             { awesome: false }
           ]
         }
@@ -244,7 +248,7 @@ describe('hasMany', function () {
       expect(this.User.findAll, 'to have a call satisfying', [{
         where: {
           $and: [
-            { projectId: [this.project3.get('id')] },
+            { project_id: [this.project3.get('id')] },
             { awesome: true }
           ]
         },
@@ -253,7 +257,7 @@ describe('hasMany', function () {
       expect(this.User.findAll, 'to have a call satisfying', [{
         where: {
           $and: [
-            { projectId: [this.project2.get('id')] },
+            { project_id: [this.project2.get('id')] },
             { awesome: false }
           ]
         },

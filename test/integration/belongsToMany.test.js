@@ -14,13 +14,52 @@ describe('belongsToMany', function () {
 
   [
     ['string through', context => {
-      context.Project.Users = context.Project.belongsToMany(context.User, { as: 'members', through: 'project_members' });
-      context.User.belongsToMany(context.Project, { through: 'project_members' });
+      context.Project.Users = context.Project.belongsToMany(context.User, {
+        as: 'members',
+        through: 'project_members',
+        foreignKey: {
+          name: 'projectId',
+          field: 'project_id'
+        },
+        targetKey: {
+          name: 'userId',
+          field: 'user_id'
+        }
+      });
+      context.User.belongsToMany(context.Project, {
+        through: 'project_members',
+        foreignKey: {
+          name: 'userId',
+          field: 'user_id'
+        },
+        targetKey: {
+          name: 'projectId',
+          field: 'project_id'
+        }
+      });
     }],
     ['model through', context => {
-      context.ProjectMembers = connection.define('project_members');
-      context.Project.Users = context.Project.belongsToMany(context.User, { as: 'members', through: context.ProjectMembers });
-      context.User.belongsToMany(context.Project, { through: context.ProjectMembers });
+      context.ProjectMembers = connection.define('project_members', {
+        projectId: {
+          type: Sequelize.INTEGER,
+          field: 'project_id'
+        },
+        userId: {
+          type: Sequelize.INTEGER,
+          field: 'user_id'
+        }
+      });
+      context.Project.Users = context.Project.belongsToMany(context.User, {
+        as: 'members',
+        through: context.ProjectMembers,
+        foreignKey: 'projectId',
+        targetKey: 'userId'
+      });
+      context.User.belongsToMany(context.Project, {
+        through: context.ProjectMembers,
+        foreignKey: 'userId',
+        targetKey: 'projectId'
+      });
     }]
   ].forEach(([description, setup]) => {
     describe(description, function () {
@@ -87,7 +126,7 @@ describe('belongsToMany', function () {
           expect(this.User.findAll, 'to have a call satisfying', [{
             include: [{
               association: this.Project.Users.manyFromTarget,
-              where: { projectId: [ this.project1.get('id'), this.project2.get('id') ] }
+              where: { project_id: [ this.project1.get('id'), this.project2.get('id') ] }
             }]
           }]);
         });
@@ -123,10 +162,10 @@ describe('belongsToMany', function () {
                 'projectId'
               ],
               association: this.Project.Users.manyFromTarget,
-              where: { projectId: [ this.project1.get('id'), this.project2.get('id'), project4.get('id') ] }
+              where: { project_id: [ this.project1.get('id'), this.project2.get('id'), project4.get('id') ] }
             }],
             raw: true,
-            group: ['projectId'],
+            group: [`${this.ProjectMembers ? 'project_members' : 'members'}.project_id`],
             multiple: false
           }]);
         });
