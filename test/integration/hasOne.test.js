@@ -13,7 +13,10 @@ describe('hasOne', function () {
 
     this.User.hasOne(this.Project, {
       as: 'mainProject',
-      foreignKey: 'ownerId'
+      foreignKey: {
+        name: 'ownerId',
+        field: 'owner_id'
+      }
     });
 
     await connection.sync({
@@ -51,7 +54,7 @@ describe('hasOne', function () {
     expect(this.Project.findAll, 'was called once');
     expect(this.Project.findAll, 'to have a call satisfying', [{
       where: {
-        ownerId: [this.user1.get('id'), this.user2.get('id')]
+        owner_id: [this.user1.get('id'), this.user2.get('id')]
       }
     }]);
   });

@@ -92,7 +92,7 @@ function rejectOnEmpty(options, result) {
   return result;
 }
 
-function loaderForBTM(model, joinTableName, foreignKey, options = {}) {
+function loaderForBTM(model, joinTableName, foreignKey, foreignKeyField, options = {}) {
   assert(options.include === undefined, 'options.include is not supported by model loader');
   assert(options.association !== undefined, 'options.association should be set for BTM loader');
 
@@ -116,7 +116,7 @@ function loaderForBTM(model, joinTableName, foreignKey, options = {}) {
           attributes: [foreignKey],
           association: association.manyFromSource,
           where: {
-            [foreignKey]: keys
+            [foreignKeyField]: keys
           }
         }];
       }
@@ -130,7 +130,7 @@ function loaderForBTM(model, joinTableName, foreignKey, options = {}) {
   return cache.get(cacheKey);
 }
 
-function loaderForModel(model, attribute, options = {}) {
+function loaderForModel(model, attribute, attributeField, options = {}) {
   assert(options.include === undefined, 'options.include is not supported by model loader');
 
   let cacheKey = getCacheKey(model, attribute, options);
@@ -143,13 +143,13 @@ function loaderForModel(model, attribute, options = {}) {
       if (findOptions.limit && keys.length > 1) {
         findOptions.groupedLimit = {
           limit: findOptions.limit,
-          on: attribute,
+          on: attributeField,
           values: keys
         };
         delete findOptions.limit;
       } else {
         findOptions.where = mergeWhere({
-          [attribute]: keys
+          [attributeField]: keys
         }, findOptions.where);
       }
 
@@ -173,7 +173,7 @@ function shimModel(target) {
       if (options.transaction) {
         return original.apply(this, arguments);
       }
-      return loaderForModel(this, this.primaryKeyAttribute).load(id).then(rejectOnEmpty.bind(null, options));
+      return loaderForModel(this, this.primaryKeyAttribute, this.primaryKeyField).load(id).then(rejectOnEmpty.bind(null, options));
     };
   });
 }
@@ -192,7 +192,7 @@ function shimBelongsTo(target) {
         if (!foreignKeyValue) {
           return Promise.resolve(null);
         }
-        let loader = loaderForModel(this.target, this.targetKey, options);
+        let loader = loaderForModel(this.target, this.targetKey, this.targetKeyField, options);
         return loader.load(foreignKeyValue);
       }).then(rejectOnEmpty.bind(null, options));
     };
@@ -208,7 +208,7 @@ function shimHasOne(target) {
         return original.apply(this, arguments);
       }
 
-      let loader = loaderForModel(this.target, this.foreignKey, options);
+      let loader = loaderForModel(this.target, this.foreignKey, this.identifierField, options);
       return loader.load(instance.get(this.sourceKey)).then(rejectOnEmpty.bind(null, options));
     };
   });
@@ -235,7 +235,7 @@ function shimHasMany(target) {
         isCount = true;
       }
 
-      let loader = loaderForModel(this.target, options.limit ? this.foreignKeyField : this.foreignKey, {
+      let loader = loaderForModel(this.target, this.foreignKey, this.foreignKeyField, {
         multiple: true,
         ...options
       });
@@ -271,12 +271,12 @@ function shimBelongsToMany(target) {
         // Phew, what an if statement - It avoids duplicating the count code from sequelize,
         // at the expense of slightly tighter coupling to the sequelize implementation
         options.multiple = false;
-        options.group = [this.foreignKey];
+        options.group = [`${this.paired.manyFromSource.as}.${this.identifierField}`];
         delete options.plain;
         isCount = true;
       }
 
-      let loader = loaderForBTM(this.target, this.paired.manyFromSource.as, this.foreignKey, {
+      let loader = loaderForBTM(this.target, this.paired.manyFromSource.as, this.foreignKey, this.identifierField, {
         association: this.paired,
         multiple: true,
         ...options
