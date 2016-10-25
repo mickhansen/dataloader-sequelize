@@ -21,13 +21,13 @@ describe('getCacheKey', function () {
     expect(getCacheKey({
       name: 'user'
     }, 'id', options), 'to equal',
-      'user|id|association:undefined|attributes:undefined|groupedLimit:undefined|limit:undefined|offset:undefined|order:undefined|through:undefined|where:undefined|raw:undefined');
+      'user|id|association:undefined|attributes:undefined|groupedLimit:undefined|limit:undefined|offset:undefined|order:undefined|raw:undefined|through:undefined|where:undefined');
   });
 
   it('handles nulls', function () {
     expect(getCacheKey(User, 'id', {
       order: null
-    }), 'to equal', 'user|id|association:undefined|attributes:undefined|groupedLimit:undefined|limit:undefined|offset:undefined|order:null|through:undefined|where:undefined|raw:undefined');
+    }), 'to equal', 'user|id|association:undefined|attributes:undefined|groupedLimit:undefined|limit:undefined|offset:undefined|order:null|raw:undefined|through:undefined|where:undefined');
   });
 
   it('does not modify arrays', function () {
@@ -36,7 +36,7 @@ describe('getCacheKey', function () {
     };
 
     expect(getCacheKey(User, 'id', options), 'to equal',
-      'user|id|association:undefined|attributes:undefined|groupedLimit:undefined|limit:undefined|offset:undefined|order:foo,bar|through:undefined|where:undefined|raw:undefined');
+      'user|id|association:undefined|attributes:undefined|groupedLimit:undefined|limit:undefined|offset:undefined|order:foo,bar|raw:undefined|through:undefined|where:undefined');
     expect(options.order, 'to equal', ['foo', 'bar']);
   });
 
@@ -44,13 +44,13 @@ describe('getCacheKey', function () {
     expect(getCacheKey(User, 'id', {
       association,
       limit: 42
-    }), 'to equal', 'user|id|association:HasMany,task,tasks|attributes:undefined|groupedLimit:undefined|limit:42|offset:undefined|order:undefined|through:undefined|where:undefined|raw:undefined');
+    }), 'to equal', 'user|id|association:HasMany,task,tasks|attributes:undefined|groupedLimit:undefined|limit:42|offset:undefined|order:undefined|raw:undefined|through:undefined|where:undefined');
   });
 
   it('handles attributes', function () {
     expect(getCacheKey(User, 'id', {
       attributes: ['foo', 'bar', 'baz']
-    }), 'to equal', 'user|id|association:undefined|attributes:bar,baz,foo|groupedLimit:undefined|limit:undefined|offset:undefined|order:undefined|through:undefined|where:undefined|raw:undefined');
+    }), 'to equal', 'user|id|association:undefined|attributes:bar,baz,foo|groupedLimit:undefined|limit:undefined|offset:undefined|order:undefined|raw:undefined|through:undefined|where:undefined');
   });
 
   describe('where statements', function () {
@@ -60,7 +60,7 @@ describe('getCacheKey', function () {
           completed: true
         }
       }), 'to equal',
-        'user|id|association:undefined|attributes:undefined|groupedLimit:undefined|limit:undefined|offset:undefined|order:undefined|through:undefined|where:completed:true|raw:undefined');
+        'user|id|association:undefined|attributes:undefined|groupedLimit:undefined|limit:undefined|offset:undefined|order:undefined|raw:undefined|through:undefined|where:completed:true');
     });
 
     it('literal', function () {
@@ -69,7 +69,7 @@ describe('getCacheKey', function () {
           foo: connection.literal('SELECT foo FROM bar')
         }
       }), 'to equal',
-        'user|id|association:undefined|attributes:undefined|groupedLimit:undefined|limit:undefined|offset:undefined|order:undefined|through:undefined|where:foo:val:SELECT foo FROM bar|raw:undefined');
+        'user|id|association:undefined|attributes:undefined|groupedLimit:undefined|limit:undefined|offset:undefined|order:undefined|raw:undefined|through:undefined|where:foo:val:SELECT foo FROM bar');
     });
 
     it('fn + col', function () {
@@ -80,7 +80,7 @@ describe('getCacheKey', function () {
           }
         }
       }), 'to equal',
-        'user|id|association:undefined|attributes:undefined|groupedLimit:undefined|limit:undefined|offset:undefined|order:undefined|through:undefined|where:foo:$gt:args:col:bar|fn:FOO|raw:undefined');
+        'user|id|association:undefined|attributes:undefined|groupedLimit:undefined|limit:undefined|offset:undefined|order:undefined|raw:undefined|through:undefined|where:foo:$gt:args:col:bar|fn:FOO');
     });
   });
 });
