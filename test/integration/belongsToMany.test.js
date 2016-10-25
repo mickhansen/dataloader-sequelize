@@ -4,12 +4,33 @@ import dataloaderSequelize from '../../src';
 import expect from 'unexpected';
 import Sequelize from 'sequelize';
 
+async function createData() {
+  [this.project1, this.project2, this.project3, this.project4] = await this.Project.bulkCreate([
+    { id: randint() },
+    { id: randint() },
+    { id: randint() },
+    { id: randint() }
+  ], {returning: true});
+  this.users = await this.User.bulkCreate([
+    { id: randint(), awesome: false},
+    { id: randint(), awesome: true },
+    { id: randint(), awesome: true },
+    { id: randint(), awesome: false },
+    { id: randint(), awesome: true },
+    { id: randint(), awesome: false },
+    { id: randint(), awesome: true },
+    { id: randint(), awesome: true },
+    { id: randint(), awesome: true }
+  ], {returning: true});
+
+  await this.project1.setMembers(this.users.slice(0, 4));
+  await this.project2.setMembers(this.users.slice(3, 7));
+  await this.project3.setMembers(this.users.slice(6));
+}
+
 describe('belongsToMany', function () {
   beforeEach(async function () {
     this.sandbox = sinon.sandbox.create();
-  });
-  afterEach(function () {
-    this.sandbox.restore();
   });
 
   [
@@ -64,9 +85,7 @@ describe('belongsToMany', function () {
   ].forEach(([description, setup]) => {
     describe(description, function () {
       describe('simple association', function () {
-        beforeEach(async function () {
-          this.sandbox = sinon.sandbox.create();
-
+        before(async function () {
           this.User = connection.define('user', {
             name: Sequelize.STRING,
             awesome: Sequelize.BOOLEAN
@@ -75,34 +94,20 @@ describe('belongsToMany', function () {
 
           setup(this);
 
-          await connection.sync({
-            force: true
-          });
-
-          [this.project1, this.project2, this.project3, this.project4] = await this.Project.bulkCreate([
-            { id: randint() },
-            { id: randint() },
-            { id: randint() },
-            { id: randint() }
-          ], {returning: true});
-          this.users = await this.User.bulkCreate([
-            { id: randint(), awesome: false},
-            { id: randint(), awesome: true },
-            { id: randint(), awesome: true },
-            { id: randint(), awesome: false },
-            { id: randint(), awesome: true },
-            { id: randint(), awesome: false },
-            { id: randint(), awesome: true },
-            { id: randint(), awesome: true },
-            { id: randint(), awesome: true }
-          ], {returning: true});
-
-          await this.project1.setMembers(this.users.slice(0, 4));
-          await this.project2.setMembers(this.users.slice(3, 7));
-          await this.project3.setMembers(this.users.slice(6));
+          await connection.sync({ force: true });
+          await createData.call(this);
 
           dataloaderSequelize(this.Project);
+        });
+
+        beforeEach(function () {
+          this.sandbox = sinon.sandbox.create();
+
           this.sandbox.spy(this.User, 'findAll');
+        });
+
+        afterEach(function () {
+          this.sandbox.restore();
         });
 
         it('batches to a single findAll call when getting', async function () {
@@ -272,7 +277,259 @@ describe('belongsToMany', function () {
             }
           }]);
         });
+      });
+    });
+  });
 
+  describe('scopes', function () {
+    describe('scope on target', function () {
+      before(async function () {
+        this.User = connection.define('user', {
+          name: Sequelize.STRING,
+          awesome: Sequelize.BOOLEAN
+        });
+        this.Project = connection.define('project');
+
+        this.Project.AwesomeMembers = this.Project.belongsToMany(this.User, {
+          as: 'awesomeMembers',
+          through: 'project_members',
+          foreignKey: 'projectId',
+          targetKey: 'userId',
+          scope: {
+            awesome: true
+          }
+        });
+
+        this.Project.Members = this.Project.belongsToMany(this.User, {
+          as: 'members',
+          through: 'project_members',
+          foreignKey: 'projectId',
+          targetKey: 'userId'
+        });
+
+        this.User.belongsToMany(this.Project, {
+          through: 'project_members',
+          foreignKey: 'userId',
+          targetKey: 'projectId'
+        });
+
+        await connection.sync({ force: true });
+        await createData.call(this);
+
+        dataloaderSequelize(this.Project);
+      });
+
+      beforeEach(function () {
+        this.sandbox.spy(this.User, 'findAll');
+      });
+
+      afterEach(function () {
+        this.sandbox.restore();
+      });
+
+      it('batches to multiple findAll call when different limits are applied', async function () {
+        let members1 = this.project1.getAwesomeMembers({ limit: 10 })
+          , members2 = this.project2.getAwesomeMembers({ limit: 10 })
+          , members3 = this.project3.getAwesomeMembers({ limit: 2 });
+
+        await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+          this.users[1],
+          this.users[2]
+        ]);
+        await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+          this.users[4],
+          this.users[6]
+        ]);
+        await expect(members3, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+          this.users[6],
+          this.users[7]
+        ]);
+
+        expect(this.User.findAll, 'was called twice');
+      });
+
+      it('batches to a single findAll call', async function () {
+        let members1 = this.project1.getAwesomeMembers()
+          , members2 = this.project2.getAwesomeMembers()
+          , members3 = this.project3.getAwesomeMembers();
+
+        await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+          this.users[1],
+          this.users[2]
+        ]);
+        await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+          this.users[4],
+          this.users[6]
+        ]);
+        await expect(members3, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+          this.users[6],
+          this.users[7],
+          this.users[8]
+        ]);
+
+        expect(this.User.findAll, 'was called once');
+      });
+
+      it('works for raw queries', async function () {
+        let members1 = this.project1.getAwesomeMembers()
+          , members2 = this.project2.getAwesomeMembers({ raw: true })
+          , members3 = this.project3.getAwesomeMembers({ raw: true });
+
+        await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+          this.users[1],
+          this.users[2]
+        ]);
+        expect((await members2).map(m => m.id), 'with set semantics to exhaustively satisfy', [
+          this.users[4].id,
+          this.users[6].id
+        ]);
+        expect((await members3).map(m => m.id), 'with set semantics to exhaustively satisfy', [
+          this.users[6].id,
+          this.users[7].id,
+          this.users[8].id
+        ]);
+
+        expect(this.User.findAll, 'was called twice');
+      });
+
+      it('batches to multiple findAll call when different scopes are applied', async function () {
+        let members1 = this.project1.getAwesomeMembers({ limit: 10 })
+          , members2 = this.project1.getMembers({ limit: 10 });
+
+        await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+          this.users[1],
+          this.users[2]
+        ]);
+        await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+          this.users[0],
+          this.users[1],
+          this.users[2],
+          this.users[3]
+        ]);
+
+        expect(this.User.findAll, 'was called twice');
+      });
+    });
+
+    describe('scope on through', function () {
+      before(async function () {
+        this.User = connection.define('user', {
+          name: Sequelize.STRING,
+          awesome: Sequelize.BOOLEAN
+        });
+        this.Project = connection.define('project');
+        this.ProjectMembers = connection.define('project_members', {
+          secret: Sequelize.BOOLEAN
+        });
+
+        this.Project.SecretMembers = this.Project.belongsToMany(this.User, {
+          as: 'secretMembers',
+          through: {
+            model: this.ProjectMembers,
+            scope: {
+              secret: true
+            }
+          },
+          foreignKey: 'projectId',
+          targetKey: 'userId'
+        });
+
+        this.Project.Members = this.Project.belongsToMany(this.User, {
+          as: 'members',
+          through: this.ProjectMembers,
+          foreignKey: 'projectId',
+          targetKey: 'userId'
+        });
+
+        this.User.belongsToMany(this.Project, {
+          through: this.ProjectMembers,
+          foreignKey: 'userId',
+          targetKey: 'projectId'
+        });
+
+        await connection.sync({ force: true });
+        await createData.call(this);
+
+        await this.ProjectMembers.update({
+          secret: true
+        }, {
+          where: {
+            $or: [
+              { projectId: this.project1.get('id'), userId: [this.users[0].get('id'), this.users[1].get('id')]},
+              { projectId: this.project2.get('id'), userId: [this.users[4].get('id')]},
+              { projectId: this.project3.get('id'), userId: [this.users[6].get('id'), this.users[7].get('id'), this.users[8].get('id')]}
+            ]
+          }
+        });
+
+        dataloaderSequelize(this.Project);
+      });
+
+      beforeEach(function () {
+        this.sandbox.spy(this.User, 'findAll');
+      });
+
+      afterEach(function () {
+        this.sandbox.restore();
+      });
+
+      it('batches to multiple findAll call when different limits are applied', async function () {
+        let members1 = this.project1.getSecretMembers({ limit: 10 })
+          , members2 = this.project2.getSecretMembers({ limit: 10 })
+          , members3 = this.project3.getSecretMembers({ limit: 2 });
+
+        await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+          this.users[0],
+          this.users[1]
+        ]);
+        await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+          this.users[4]
+        ]);
+        await expect(members3, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+          this.users[6],
+          this.users[7]
+        ]);
+
+        expect(this.User.findAll, 'was called twice');
+      });
+
+      it('batches to one findAll call without limits', async function () {
+        let members1 = this.project1.getSecretMembers()
+          , members2 = this.project2.getSecretMembers()
+          , members3 = this.project3.getSecretMembers();
+
+        await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+          this.users[0],
+          this.users[1]
+        ]);
+        await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+          this.users[4]
+        ]);
+        await expect(members3, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+          this.users[6],
+          this.users[7],
+          this.users[8]
+        ]);
+
+        expect(this.User.findAll, 'was called once');
+      });
+
+      it('batches to multiple findAll call when different scopes are applied', async function () {
+        let members1 = this.project1.getSecretMembers({ limit: 10 })
+          , members2 = this.project1.getMembers({ limit: 10 });
+
+        await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+          this.users[0],
+          this.users[1]
+        ]);
+        await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+          this.users[0],
+          this.users[1],
+          this.users[2],
+          this.users[3]
+        ]);
+
+        expect(this.User.findAll, 'was called twice');
       });
     });
   });

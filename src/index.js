@@ -8,7 +8,7 @@ import assert from 'assert';
 
 function mapResult(attribute, keys, options, result) {
   // Convert an array of results to an object of attribute (primary / foreign / target key) -> array of matching rows
-  if (Array.isArray(attribute) && options.multiple) {
+  if (Array.isArray(attribute) && options.multiple && !options.raw) {
     // Regular belongs to many
     let [throughAttribute, foreignKey] = attribute;
     result = result.reduce((carry, row) => {
@@ -107,6 +107,7 @@ function loaderForBTM(model, joinTableName, foreignKey, foreignKeyField, options
       delete findOptions.rejectOnEmpty;
       if (findOptions.limit) {
         findOptions.groupedLimit = {
+          through: options.through,
           on: association,
           limit: findOptions.limit,
           values: keys
@@ -116,7 +117,8 @@ function loaderForBTM(model, joinTableName, foreignKey, foreignKeyField, options
           attributes: [foreignKey],
           association: association.manyFromSource,
           where: {
-            [foreignKeyField]: keys
+            [foreignKeyField]: keys,
+            ...options.through.where
           }
         }];
       }
@@ -235,6 +237,15 @@ function shimHasMany(target) {
         isCount = true;
       }
 
+      if (this.scope) {
+        options.where = {
+          $and: [
+            options.where,
+            this.scope
+          ]
+        };
+      }
+
       let loader = loaderForModel(this.target, this.foreignKey, this.foreignKeyField, {
         multiple: true,
         ...options
@@ -274,6 +285,25 @@ function shimBelongsToMany(target) {
         options.group = [`${this.paired.manyFromSource.as}.${this.identifierField}`];
         delete options.plain;
         isCount = true;
+      }
+
+      if (this.scope) {
+        options.where = {
+          $and: [
+            options.where,
+            this.scope
+          ]
+        };
+      }
+
+      options.through = options.through || {};
+      if (this.through.scope) {
+        options.through.where = {
+          $and: [
+            options.through.where,
+            this.through.scope
+          ]
+        };
       }
 
       let loader = loaderForBTM(this.target, this.paired.manyFromSource.as, this.foreignKey, this.identifierField, {
