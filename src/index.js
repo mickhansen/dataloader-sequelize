@@ -50,7 +50,7 @@ function stringifyValue(value, key) {
       value = clone(value).sort();
     }
     return value.map(stringifyValue).join(',');
-  } else if (typeof value === 'object') {
+  } else if (typeof value === 'object' && value !== null) {
     return stringifyObject(value);
   }
   return value;
@@ -64,7 +64,7 @@ function stringifyObject(object, keys = Object.keys(object)) {
 }
 
 export function getCacheKey(model, attribute, options) {
-  options = stringifyObject(options, ['association', 'attributes', 'groupedLimit', 'limit', 'offset', 'order', 'where']);
+  options = stringifyObject(options, ['association', 'attributes', 'groupedLimit', 'limit', 'offset', 'order', 'where', 'through', 'raw']);
 
   return `${model.name}|${attribute}|${options}`;
 }
