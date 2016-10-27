@@ -191,7 +191,7 @@ function shimBelongsTo(target) {
 
       let foreignKeyValue = instance.get(this.foreignKey);
       return Promise.resolve().then(() => {
-        if (!foreignKeyValue) {
+        if (foreignKeyValue === undefined || foreignKeyValue === null) {
           return Promise.resolve(null);
         }
         let loader = loaderForModel(this.target, this.targetKey, this.targetKeyField, options);
