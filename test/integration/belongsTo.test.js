@@ -34,16 +34,19 @@ describe('belongsTo', function () {
         force: true
       });
 
-      [this.user1, this.user2] = await this.User.bulkCreate([
+      [this.user0, this.user1, this.user2] = await this.User.bulkCreate([
+        { id: '0' },
         { id: randint() },
         { id: randint() }
       ], { returning: true });
-      [this.project1, this.project2, this.project3] = await this.Project.bulkCreate([
+      [this.project0, this.project1, this.project2, this.project3] = await this.Project.bulkCreate([
+        { id: '0' },
         { id: randint() },
         { id: randint() },
         { id: randint() }
       ], { returning: true });
       await Promise.join(
+        this.project0.setOwner(this.user0),
         this.project1.setOwner(this.user1),
         this.project2.setOwner(this.user2)
       );
@@ -69,6 +72,13 @@ describe('belongsTo', function () {
     it('works for project without owner', async function () {
       expect(await this.project3.getOwner(), 'to equal', null);
       expect(this.User.findAll, 'was not called');
+    });
+
+    it('works with id of 0', async function () {
+      let user0 = this.project0.getOwner();
+
+      await expect(user0, 'to be fulfilled with', this.user0);
+      await expect(user0.get('id'), 'to be fulfilled with', 0);
     });
 
     it('supports rejectOnEmpty', async function () {
