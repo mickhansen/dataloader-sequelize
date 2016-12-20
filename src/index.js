@@ -112,16 +112,15 @@ function loaderForBTM(model, joinTableName, foreignKey, foreignKeyField, options
           limit: findOptions.limit,
           values: keys
         };
-      } else {
-        findOptions.include = [{
-          attributes: [foreignKey],
-          association: association.manyFromSource,
-          where: {
-            [foreignKeyField]: keys,
-            ...options.through.where
-          }
-        }];
       }
+      findOptions.include = [{
+        attributes: [foreignKey],
+        association: association.manyFromSource,
+        where: {
+          [foreignKeyField]: keys,
+          ...options.through.where
+        }
+      }];
 
       return model.findAll(findOptions).then(mapResult.bind(null, attributes, keys, findOptions));
     }, {
