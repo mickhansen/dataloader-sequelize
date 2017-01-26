@@ -107,6 +107,9 @@ the batching functionality from dataloader, caching is disabled.
 ```js
 import dataloaderSequelize from 'dataloader-sequelize';
 
+//Note: if using require use the following syntax
+//const dataloaderSequelize = require('dataloader-sequelize').default;
+
 // Sequelize instance - wrap all current and future models and associations
 dataloaderSequelize(sequelize)
 
