@@ -172,7 +172,7 @@ function shimModel(target) {
       if ([null, undefined].indexOf(id) !== -1) {
         return Promise.resolve(null);
       }
-      if (options.transaction) {
+      if (options.transaction || options.include) {
         return original.apply(this, arguments);
       }
       return loaderForModel(this, this.primaryKeyAttribute, this.primaryKeyField).load(id).then(rejectOnEmpty.bind(null, options));
