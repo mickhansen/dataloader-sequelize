@@ -265,6 +265,17 @@ describe('hasMany', function () {
         limit: 1
       }]);
     });
+
+    it('should do stuff', async function() {
+      let project1 = await this.Project.findById(this.project1.id, { include: [ this.Project.associations.members ]});
+      let project2 = await this.Project.findById(this.project2.id, { include: [ this.Project.associations.members ]});
+
+      expect(project1.members, 'not to be undefined');
+      expect(project2.members, 'not to be undefined');
+      expect(project1.members.length, 'to equal', 3);
+      expect(project2.members.length, 'to equal', 4);
+    });
+
   });
 
   describe('paranoid', function () {
