@@ -268,7 +268,7 @@ describe('hasMany', function () {
     });
 
     it('should skip batching if include is set', async function() {
-      let DataLoaderSpy = this.sandbox.spy(DataLoader);
+      this.sandbox.spy(DataLoader.prototype, 'load');
       let project1 = await this.Project.findById(this.project1.id, { include: [ this.Project.associations.members ]});
       let project2 = await this.Project.findById(this.project2.id, { include: [ this.Project.associations.members ]});
 
@@ -276,8 +276,7 @@ describe('hasMany', function () {
       expect(project2.members, 'not to be undefined');
       expect(project1.members, 'to have length', 3);
       expect(project2.members, 'to have length', 4);
-
-      expect(DataLoaderSpy.calledWithNew(), 'to be false');
+      expect(DataLoader.prototype.load, 'was not called');
     });
 
   });
