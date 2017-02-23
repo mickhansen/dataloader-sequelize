@@ -1,6 +1,7 @@
 import Sequelize from 'sequelize';
 import {connection, randint} from '../helper';
 import sinon from 'sinon';
+import DataLoader from 'dataloader';
 import dataloaderSequelize from '../../src';
 import expect from 'unexpected';
 
@@ -266,14 +267,17 @@ describe('hasMany', function () {
       }]);
     });
 
-    it('should do stuff', async function() {
+    it('should skip batching if include is set', async function() {
+      let DataLoaderSpy = this.sandbox.spy(DataLoader);
       let project1 = await this.Project.findById(this.project1.id, { include: [ this.Project.associations.members ]});
       let project2 = await this.Project.findById(this.project2.id, { include: [ this.Project.associations.members ]});
 
       expect(project1.members, 'not to be undefined');
       expect(project2.members, 'not to be undefined');
-      expect(project1.members.length, 'to equal', 3);
-      expect(project2.members.length, 'to equal', 4);
+      expect(project1.members, 'to have length', 3);
+      expect(project2.members, 'to have length', 4);
+
+      expect(DataLoaderSpy.calledWithNew(), 'to be false');
     });
 
   });
