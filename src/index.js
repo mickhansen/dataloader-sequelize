@@ -252,9 +252,9 @@ function shimHasMany(target) {
       });
 
       if (Array.isArray(instances)) {
-        return Promise.map(instances, instance => loader.load(instance.get(this.source.primaryKeyAttribute)));
+        return Promise.map(instances, instance => loader.load(instance.get(this.sourceKey)));
       } else {
-        return loader.load(instances.get(this.source.primaryKeyAttribute)).then(result => {
+        return loader.load(instances.get(this.sourceKey)).then(result => {
           if (isCount && !result) {
             result = { count: 0 };
           }
