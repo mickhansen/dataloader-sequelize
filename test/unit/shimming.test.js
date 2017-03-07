@@ -1,4 +1,5 @@
 import {connection} from '../helper';
+import Sequelize from 'sequelize';
 import dataloaderSequelize from '../../src';
 import expect from 'unexpected';
 import sinon from 'sinon';
@@ -9,11 +10,24 @@ describe('shimming', function () {
   beforeEach(function () {
     this.sandbox = sinon.sandbox.create();
     this.User = connection.define('user');
-    this.Task = connection.define('task');
+    this.Task = connection.define('task', {
+      external_id: Sequelize.INTEGER
+    });
+    this.Action = connection.define('action', {
+      task_id: Sequelize.INTEGER
+    });
 
     this.User.Tasks = this.User.hasMany(this.Task);
     this.User.PrimaryTask = this.User.hasOne(this.Task);
     this.Task.User = this.Task.belongsTo(this.User);
+    this.Task.Actions = this.Task.hasMany(this.Action, {
+      foreignKey: 'task_id',
+      sourceKey: 'external_id'
+    });
+    this.Action.Task = this.Action.belongsTo(this.Task, {
+      foreignKey: 'task_id',
+      targetKey: 'external_id'
+    });
   });
 
   afterEach(function () {
@@ -38,12 +52,15 @@ describe('shimming', function () {
     it('shims all models', function () {
       expect(this.User.findById, 'to be shimmed');
       expect(this.Task.findById, 'to be shimmed');
+      expect(this.Action.findById, 'to be shimmed');
     });
 
     it('shims all associations', function () {
       expect(this.User.Tasks.get, 'to be shimmed');
       expect(this.User.PrimaryTask.get, 'to be shimmed');
       expect(this.Task.User.get, 'to be shimmed');
+      expect(this.Task.Actions.get, 'to be shimmed');
+      expect(this.Action.Task.get, 'to be shimmed');
     });
 
     it('shims only once', function () {
