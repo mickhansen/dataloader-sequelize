@@ -251,10 +251,12 @@ function shimHasMany(target) {
         ...options
       });
 
+      let key = this.sourceKey || this.source.primarKeyAttribute;
+
       if (Array.isArray(instances)) {
-        return Promise.map(instances, instance => loader.load(instance.get(this.sourceKey)));
+        return Promise.map(instances, instance => loader.load(instance.get(key)));
       } else {
-        return loader.load(instances.get(this.sourceKey)).then(result => {
+        return loader.load(instances.get(key)).then(result => {
           if (isCount && !result) {
             result = { count: 0 };
           }
