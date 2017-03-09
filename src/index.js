@@ -251,7 +251,7 @@ function shimHasMany(target) {
         ...options
       });
 
-      let key = this.sourceKey || this.source.primarKeyAttribute;
+      let key = this.sourceKey || this.source.primaryKeyAttribute;
 
       if (Array.isArray(instances)) {
         return Promise.map(instances, instance => loader.load(instance.get(key)));
