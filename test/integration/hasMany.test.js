@@ -469,4 +469,53 @@ describe('hasMany', function () {
       expect(this.User.findAll, 'was called twice');
     });
   });
+
+  describe('support sourceKey in hasMany associations', function () {
+    before(async function () {
+      this.User = connection.define('user', {
+        project__c: Sequelize.STRING,
+      });
+      this.Project = connection.define('project', {
+        sfid: {
+          type: Sequelize.STRING,
+          unique: true,
+        },
+      });
+      this.User.belongsTo(this.Project, {
+        foreignKey: 'project__c',
+        targetKey: 'sfid',
+      });
+      this.Project.hasMany(this.User, {
+        foreignKey: 'project__c',
+        sourceKey: 'sfid',
+      });
+
+      await connection.sync({ force: true });
+
+      this.project1 = await this.Project.create({
+        id: randint(),
+        sfid: '001abc',
+      }, {returning: true});
+
+      this.users = await this.User.bulkCreate([
+        { id: randint() },
+        { id: randint() },
+        { id: randint() },
+        { id: randint() },
+      ], {returning: true});
+
+      await this.project1.setUsers(this.users);
+      dataloaderSequelize(this.Project);
+    });
+
+    afterEach(function () {
+      this.sandbox.restore();
+    });
+
+    it('correctly links sourceKey and foreignKey', async function () {
+      let members1 = this.project1.getUsers();
+
+      await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', this.users);
+    });
+  });
 });
