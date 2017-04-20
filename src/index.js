@@ -114,7 +114,6 @@ function loaderForBTM(model, joinTableName, foreignKey, foreignKeyField, options
         };
       } else {
         findOptions.include = [{
-          attributes: [foreignKey],
           association: association.manyFromSource,
           where: {
             [foreignKeyField]: keys,
