@@ -11,12 +11,16 @@ function mapResult(attribute, keys, options, result) {
   if (Array.isArray(attribute) && options.multiple && !options.raw) {
     // Regular belongs to many
     let [throughAttribute, foreignKey] = attribute;
+
     result = result.reduce((carry, row) => {
       for (const throughRow of row.get(throughAttribute)) {
         let key = throughRow[foreignKey];
         if (!(key in carry)) {
           carry[key] = [];
         }
+        // For future eventual use in GraphQL, for example, to resolve association source key
+        // and filter out the non matching edges
+        row.$options.btmAttributes = attribute;
 
         carry[key].push(row);
       }
@@ -96,7 +100,7 @@ function loaderForBTM(model, joinTableName, foreignKey, foreignKeyField, options
   assert(options.include === undefined, 'options.include is not supported by model loader');
   assert(options.association !== undefined, 'options.association should be set for BTM loader');
 
-  let attributes = [joinTableName, foreignKey]
+  let attributes = [joinTableName, foreignKey, options.association.toSource.targetKeyField]
     , cacheKey = getCacheKey(model, attributes, options)
     , association = options.association;
   delete options.association;
