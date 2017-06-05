@@ -37,7 +37,7 @@
     "unexpected-sinon": "^10.2.1"
   },
   "peerDependencies": {
-    "sequelize": "^4.0.0-2"
+    "sequelize": "github:sequelize/sequelize#master"
   },
   "dependencies": {
     "dataloader": "^1.2.0",
