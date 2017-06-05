@@ -353,12 +353,13 @@ export default function (target, options = {}) {
 
   if (target.associationType) {
     shimAssociation(target);
-  } else if (target.toString().includes('SequelizeModel')) {
+  } else if (/SequelizeModel|class extends Model/.test(target.toString())) {
     shimModel(target);
     values(target.associations).forEach(shimAssociation);
   } else {
     // Assume target is the sequelize constructor
-    shimModel(target.Model.prototype);
+    shimModel(/^4/.test(Sequelize.version) ? // v3 vs v4
+      target.Model : target.Model.prototype);
     shimBelongsTo(target.Association.BelongsTo.prototype);
     shimHasOne(target.Association.HasOne.prototype);
     shimHasMany(target.Association.HasMany.prototype);

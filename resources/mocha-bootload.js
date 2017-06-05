@@ -11,17 +11,20 @@ var Sequelize = require('sequelize');
 unexpected.addType({
   name: 'Sequelize.Instance',
   identify: function (value) {
-    return value && value instanceof Sequelize.Instance;
+    return value && value instanceof Sequelize.Model && 'isNewRecord' in value;
   },
   inspect: function (value, depth, output, inspect) {
+    const name = value.name || value._modelOptions.name; // v3 vs v4
     output
-      .text(value.Model.name).text('(')
+      .text(name.singular).text('(')
       .append(inspect(value.get(), depth))
       .text(')');
   },
   equal: function (a, b) {
-    const pk = a.Model.primaryKeyAttribute;
-    return a.Model.name === b.Model.name && a.get(pk) === b.get(pk);
+    const aModel = a.Model || a.constructor; // v3 vs v4
+    const bModel = b.Model || b.constructor;
+    const pk = aModel.primaryKeyAttribute;
+    return aModel.name === bModel.name && a.get(pk) === b.get(pk);
   }
 });
 

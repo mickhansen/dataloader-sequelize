@@ -31,14 +31,25 @@ describe('shimming', function () {
   });
 
   afterEach(function () {
-    [
-      connection.Model.prototype.findByPrimary,
-      connection.Model.prototype.findById,
+    const wrapped = [
       connection.Association.BelongsTo.prototype.get,
       connection.Association.HasOne.prototype.get,
       connection.Association.HasMany.prototype.get,
       connection.Association.BelongsToMany.prototype.get
-    ].forEach(i => i.__unwrap && i.__unwrap());
+    ];
+
+    if ( /^4/.test(Sequelize.version) ) {
+      wrapped.push(
+        connection.Model.findById
+      );
+    } else {
+      wrapped.push(
+        connection.Model.prototype.findByPrimary,
+        connection.Model.prototype.findById,
+      );
+    }
+
+    wrapped.forEach(i => i.__unwrap && i.__unwrap());
 
     this.sandbox.restore();
     connection.modelManager.forEachModel(connection.modelManager.removeModel.bind(connection.modelManager));
