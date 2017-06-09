@@ -88,11 +88,20 @@ describe('shimming', function () {
     });
 
     afterEach(function () {
-      [
-        this.User.findByPrimary,
-        this.User.findById,
-        this.User.associations.tasks.get
-      ].forEach(i => i.__unwrap());
+      const wrapped = [ this.User.associations.tasks.get ];
+
+      if ( /^4/.test(Sequelize.version) ) {
+        wrapped.push(
+          this.User.findById,
+        );
+      } else {
+        wrapped.push(
+          this.User.findByPrimary,
+          this.User.findById,
+        );
+      }
+
+      wrapped.forEach(i => i.__unwrap());
     });
 
     it('shims only targeted model', function () {
