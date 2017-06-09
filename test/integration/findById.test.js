@@ -85,8 +85,8 @@ describe('findById', function () {
     });
 
     it('batches to a single findAll call', async function () {
-      let user1 = this.User.findByPrimary(this.users[2].get('identifier'))
-        , user2 = this.User.findByPrimary(this.users[1].get('identifier'));
+      let user1 = this.User.findById(this.users[2].get('identifier'))
+        , user2 = this.User.findById(this.users[1].get('identifier'));
 
       await expect(user1, 'to be fulfilled with', this.users[2]);
       await expect(user2, 'to be fulfilled with', this.users[1]);
