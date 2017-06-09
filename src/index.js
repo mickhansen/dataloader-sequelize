@@ -167,7 +167,11 @@ function loaderForModel(model, attribute, attributeField, options = {}) {
 function shimModel(target) {
   if (target.findById.__wrapped) return;
 
-  shimmer.massWrap(target, ['findById', 'findByPrimary'], original => {
+  const methods = /^4/.test(Sequelize.version) ?
+    ['findById'] :
+    ['findById', 'findByPrimary'];
+
+  shimmer.massWrap(target, methods, original => {
     return function batchedFindById(id, options = {}) {
       if ([null, undefined].indexOf(id) !== -1) {
         return Promise.resolve(null);
