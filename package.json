@@ -11,10 +11,12 @@
     "prepublish": "npm run build",
     "lint": "eslint src",
     "build": "babel src -d lib",
-    "test": "npm run lint && npm run test:unit && npm run test:integration",
+    "test": "npm run lint && npm run test:current && npm run test:latest",
+    "test:current": "npm run test:unit && npm run test:integration",
     "test:unit": "NODE_ENV=test mocha $npm_package_options_mocha 'test/unit/**.test.js'",
     "test:integration": "docker-compose run --rm -e NODE_ENV=test dev npm run test:integration:raw",
     "test:integration:raw": "mocha $npm_package_options_mocha 'test/integration/**.test.js'",
+    "test:latest": "npm install sequelize@latest && npm run test:current || true && npm install sequelize",
     "cover": "babel-node node_modules/.bin/isparta cover --excludes **/resources/** _mocha -- $npm_package_options_mocha 'test/**/*.test.js'"
   },
   "devDependencies": {
@@ -37,7 +39,7 @@
     "unexpected-sinon": "^10.2.1"
   },
   "peerDependencies": {
-    "sequelize": "^3.24.6"
+    "sequelize": "^3.24.6 || ^4.0.0"
   },
   "dependencies": {
     "dataloader": "^1.2.0",
