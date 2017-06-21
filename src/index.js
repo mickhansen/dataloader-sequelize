@@ -66,7 +66,8 @@ function stringifyObject(object, keys = Object.keys(object)) {
 export function getCacheKey(model, attribute, options) {
   options = stringifyObject(options, ['association', 'attributes', 'groupedLimit', 'limit', 'offset', 'order', 'where', 'through', 'raw']);
 
-  return `${model.name}|${attribute}|${options}`;
+  const schema = model.options.schema || '';
+  return `${schema}|${model.name}|${attribute}|${options}`;
 }
 
 function mergeWhere(where, optionsWhere) {
