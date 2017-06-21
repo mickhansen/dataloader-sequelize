@@ -53,6 +53,17 @@ describe('getCacheKey', function () {
     }), 'to equal', 'user|id|association:undefined|attributes:bar,baz,foo|groupedLimit:undefined|limit:undefined|offset:undefined|order:undefined|raw:undefined|through:undefined|where:undefined');
   });
 
+  it('handles schemas', function () {
+    expect(getCacheKey({
+      name: 'user',
+      options: {
+        schema: 'app'
+      }
+    }, 'id', {
+      attributes: ['foo', 'bar', 'baz']
+    }), 'to equal', 'app|user|id|association:undefined|attributes:bar,baz,foo|groupedLimit:undefined|limit:undefined|offset:undefined|order:undefined|raw:undefined|through:undefined|where:undefined');
+  });
+
   describe('where statements', function () {
     it('POJO', function () {
       expect(getCacheKey(User, 'id', {
