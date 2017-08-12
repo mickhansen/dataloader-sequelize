@@ -362,7 +362,7 @@ export default function (target, options = {}) {
 
   if (target.associationType) {
     shimAssociation(target);
-  } else if (/(SequelizeModel|class extends Model)/.test(target.toString())) {
+  } else if (/(SequelizeModel|class extends Model)/.test(target.toString()) || Sequelize.Model.isPrototypeOf(target)) {
     shimModel(target);
     values(target.associations).forEach(shimAssociation);
   } else {
