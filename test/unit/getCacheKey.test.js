@@ -74,6 +74,23 @@ describe('getCacheKey', function () {
         'user|id|association:undefined|attributes:undefined|groupedLimit:undefined|limit:undefined|offset:undefined|order:undefined|raw:undefined|through:undefined|where:completed:true');
     });
 
+    it('date', function () {
+      const from = new Date(Date.UTC(2016, 1, 1));
+      const to = new Date(Date.UTC(2016, 2, 1));
+
+      expect(getCacheKey(User, 'id', {
+        where: {
+          completed: {
+            $between: [
+              from,
+              to
+            ]
+          }
+        }
+      }), 'to equal',
+        'user|id|association:undefined|attributes:undefined|groupedLimit:undefined|limit:undefined|offset:undefined|order:undefined|raw:undefined|through:undefined|where:completed:$between:2016-02-01T00:00:00.000Z,2016-03-01T00:00:00.000Z');
+    });
+
     it('literal', function () {
       expect(getCacheKey(User, 'id', {
         where: {
@@ -95,4 +112,3 @@ describe('getCacheKey', function () {
     });
   });
 });
-

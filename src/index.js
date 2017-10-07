@@ -51,6 +51,7 @@ function stringifyValue(value, key) {
     }
     return value.map(stringifyValue).join(',');
   } else if (typeof value === 'object' && value !== null) {
+    if (value instanceof Date) return value.toJSON();
     return stringifyObject(value);
   }
   return value;
