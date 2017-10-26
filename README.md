@@ -111,11 +111,11 @@ import dataloaderSequelize from 'dataloader-sequelize';
 //const dataloaderSequelize = require('dataloader-sequelize').default;
 
 // Sequelize instance - wrap all current and future models and associations
-dataloaderSequelize(sequelize)
+dataloaderSequelize(sequelize);
 
 // Sequelize Model - wrap findById, findByPrimary, and all existing associations
-dataloaderSequelize(User)
+dataloaderSequelize(User);
 
 // Sequelize Association - wrap only this association
-dataloaderSequelize(User.associations.tasks)
+dataloaderSequelize(User.associations.tasks);
 ```
