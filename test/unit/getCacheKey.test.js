@@ -74,6 +74,18 @@ describe('getCacheKey', function () {
         'user|id|association:undefined|attributes:undefined|groupedLimit:undefined|limit:undefined|offset:undefined|order:undefined|raw:undefined|through:undefined|where:completed:true');
     });
 
+    it('symbols', function () {
+      const or = new Symbol('or');
+      expect(getCacheKey(User, 'id', {
+        where: {
+          [Symbol('or')]: {
+            name: { [Symbol('iLike')] : '%test%' }
+          }
+        }
+      }), 'to equal',
+        'user|id|association:undefined|attributes:undefined|groupedLimit:undefined|limit:undefined|offset:undefined|order:undefined|raw:undefined|through:undefined|where:Symbol(or):name:Symbol(iLike):%test%');
+    })
+
     it('date', function () {
       const from = new Date(Date.UTC(2016, 1, 1));
       const to = new Date(Date.UTC(2016, 2, 1));
