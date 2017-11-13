@@ -60,8 +60,8 @@ function stringifyValue(value, key) {
 // This is basically a home-grown JSON.stringifier. However, JSON.stringify on objects
 // depends on the order in which the properties were defined - which we don't like!
 // Additionally, JSON.stringify escapes strings, which we don't need here
-function stringifyObject(object, keys = Object.keys(object)) {
-  return keys.sort().map(key => `${key}:${stringifyValue(object[key], key)}`).join('|');
+function stringifyObject(object, keys = [...Object.keys(object), ...Object.getOwnPropertySymbols(object)]) {
+  return keys.sort().map(key => `${key.toString()}:${stringifyValue(object[key], key)}`).join('|');
 }
 
 export function getCacheKey(model, attribute, options) {
