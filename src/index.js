@@ -65,7 +65,7 @@ function stringifyObject(object, keys = [...Object.keys(object), ...Object.getOw
 }
 
 export function getCacheKey(model, attribute, options) {
-  options = stringifyObject(options, ['association', 'attributes', 'groupedLimit', 'limit', 'offset', 'order', 'where', 'through', 'raw']);
+  options = stringifyObject(options, ['association', 'attributes', 'groupedLimit', 'limit', 'offset', 'order', 'where', 'through', 'raw', 'searchPath']);
 
   let name = `${model.name}|${attribute}|${options}`;
   const schema = model.options && model.options.schema;
