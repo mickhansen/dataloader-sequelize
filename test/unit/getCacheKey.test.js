@@ -122,4 +122,12 @@ describe('getCacheKey', function () {
         'user|id|association:undefined|attributes:undefined|groupedLimit:undefined|limit:undefined|offset:undefined|order:undefined|raw:undefined|searchPath:undefined|through:undefined|where:foo:$gt:args:col:bar|fn:FOO');
     });
   });
+
+  it('searchPath', function () {
+    expect(getCacheKey(User, 'id', {
+      searchPath: 'test'
+    }), 'to equal',
+        'user|id|association:undefined|attributes:undefined|groupedLimit:undefined|limit:undefined|offset:undefined|order:undefined|raw:undefined|searchPath:test|through:undefined|where:undefined');
+  });
+
 });
