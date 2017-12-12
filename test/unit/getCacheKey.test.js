@@ -79,10 +79,13 @@ describe('getCacheKey', function () {
         where: {
           [Symbol('or')]: {
             name: { [Symbol('iLike')]: '%test%' }
+          },
+          [Symbol('or')]: {
+            name: { [Symbol('iLike')]: '%test%' }
           }
         }
       }), 'to equal',
-        'user|id|association:undefined|attributes:undefined|groupedLimit:undefined|limit:undefined|offset:undefined|order:undefined|raw:undefined|through:undefined|where:Symbol(or):name:Symbol(iLike):%test%');
+        'user|id|association:undefined|attributes:undefined|groupedLimit:undefined|limit:undefined|offset:undefined|order:undefined|raw:undefined|through:undefined|where:Symbol(or):name:Symbol(iLike):%test%|Symbol(or):name:Symbol(iLike):%test%');
     });
 
     it('date', function () {

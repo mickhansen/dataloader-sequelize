@@ -61,7 +61,13 @@ function stringifyValue(value, key) {
 // depends on the order in which the properties were defined - which we don't like!
 // Additionally, JSON.stringify escapes strings, which we don't need here
 function stringifyObject(object, keys = [...Object.keys(object), ...Object.getOwnPropertySymbols(object)]) {
-  return keys.sort().map(key => `${key.toString()}:${stringifyValue(object[key], key)}`).join('|');
+  return keys.sort((lhs, rhs) => {
+    const l = lhs.toString();
+    const r = rhs.toString();
+    if (l > r) return 1;
+    if (l < r) return -1;
+    return 0;
+  }).map(key => `${key.toString()}:${stringifyValue(object[key], key)}`).join('|');
 }
 
 export function getCacheKey(model, attribute, options) {
