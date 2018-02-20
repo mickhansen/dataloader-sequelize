@@ -156,7 +156,7 @@ describe('hasMany', function () {
           project_id: [this.project1.get('id'), this.project2.get('id'), project4.get('id')]
         },
         attributes: [
-          [this.connection.fn('COUNT', this.connection.col('user.id')), 'count'],
+          [this.connection.fn('COUNT', this.connection.col('id')), 'count'],
           'projectId'
         ],
         raw: true,
@@ -190,7 +190,7 @@ describe('hasMany', function () {
           project_id: [this.project1.get('id'), this.project2.get('id'), project4.get('id')]
         },
         attributes: [
-          [this.connection.fn('COUNT', this.connection.col('user.id')), 'count'],
+          [this.connection.fn('COUNT', this.connection.col('id')), 'count'],
           'projectId'
         ],
         raw: true,
