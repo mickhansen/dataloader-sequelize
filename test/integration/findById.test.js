@@ -1,10 +1,11 @@
 import Sequelize from 'sequelize';
-import {connection, randint} from '../helper';
+import {createConnection, randint} from '../helper';
 import sinon from 'sinon';
-import dataloaderSequelize from '../../src';
+import dataloaderSequelize, {createContext, EXPECTED_OPTIONS_KEY} from '../../src';
 import expect from 'unexpected';
 
 describe('findById', function () {
+  beforeEach(createConnection);
   beforeEach(function () {
     this.sandbox = sinon.sandbox.create();
   });
@@ -14,7 +15,7 @@ describe('findById', function () {
 
   describe('id primary key', function () {
     beforeEach(async function () {
-      this.User = connection.define('user');
+      this.User = this.connection.define('user');
 
       this.sandbox.spy(this.User, 'findAll');
       dataloaderSequelize(this.User);
@@ -28,6 +29,8 @@ describe('findById', function () {
         { id: randint() },
         { id: randint() }
       ], { returning: true });
+
+      this.context = createContext(this.connection);
     });
 
     it('works with null', async function () {
@@ -38,6 +41,27 @@ describe('findById', function () {
     it('batches to a single findAll call', async function () {
       let user1 = this.User.findById(this.users[2].get('id'))
         , user2 = this.User.findById(this.users[1].get('id'));
+
+      await expect(user1, 'to be fulfilled with', this.users[2]);
+      await expect(user2, 'to be fulfilled with', this.users[1]);
+
+      expect(this.User.findAll, 'was called once');
+      expect(this.User.findAll, 'to have a call satisfying', [{
+        where: {
+          id: [this.users[2].get('id'), this.users[1].get('id')]
+        }
+      }]);
+    });
+
+    it('batches and caches to a single findAll call (createContext)', async function () {
+      let user1 = this.User.findById(this.users[2].get('id'), {[EXPECTED_OPTIONS_KEY]: this.context})
+        , user2 = this.User.findById(this.users[1].get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
+
+      await expect(user1, 'to be fulfilled with', this.users[2]);
+      await expect(user2, 'to be fulfilled with', this.users[1]);
+
+      user1 = this.User.findById(this.users[2].get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
+      user2 = this.User.findById(this.users[1].get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
 
       await expect(user1, 'to be fulfilled with', this.users[2]);
       await expect(user2, 'to be fulfilled with', this.users[1]);
@@ -63,7 +87,7 @@ describe('findById', function () {
 
   describe('other primary key', function () {
     beforeEach(async function () {
-      this.User = connection.define('user', {
+      this.User = this.connection.define('user', {
         identifier: {
           primaryKey: true,
           type: Sequelize.INTEGER
@@ -82,6 +106,8 @@ describe('findById', function () {
         { identifier: randint() },
         { identifier: randint() }
       ], { returning: true });
+
+      this.context = createContext(this.connection);
     });
 
     it('batches to a single findAll call', async function () {
@@ -98,11 +124,32 @@ describe('findById', function () {
         }
       }]);
     });
+
+    it('batches and caches to a single findAll call (createContext)', async function () {
+      let user1 = this.User.findById(this.users[2].get('identifier'), {[EXPECTED_OPTIONS_KEY]: this.context})
+        , user2 = this.User.findById(this.users[1].get('identifier'), {[EXPECTED_OPTIONS_KEY]: this.context});
+
+      await expect(user1, 'to be fulfilled with', this.users[2]);
+      await expect(user2, 'to be fulfilled with', this.users[1]);
+
+      user1 = this.User.findById(this.users[2].get('identifier'), {[EXPECTED_OPTIONS_KEY]: this.context});
+      user2 = this.User.findById(this.users[1].get('identifier'), {[EXPECTED_OPTIONS_KEY]: this.context});
+
+      await expect(user1, 'to be fulfilled with', this.users[2]);
+      await expect(user2, 'to be fulfilled with', this.users[1]);
+
+      expect(this.User.findAll, 'was called once');
+      expect(this.User.findAll, 'to have a call satisfying', [{
+        where: {
+          identifier: [this.users[2].get('identifier'), this.users[1].get('identifier')]
+        }
+      }]);
+    });
   });
 
   describe('primary key with field', function () {
     beforeEach(async function () {
-      this.User = connection.define('user', {
+      this.User = this.connection.define('user', {
         id: {
           primaryKey: true,
           type: Sequelize.INTEGER,
@@ -142,7 +189,7 @@ describe('findById', function () {
 
   describe('paranoid', function () {
     beforeEach(async function () {
-      this.User = connection.define('user', {}, { paranoid: true });
+      this.User = this.connection.define('user', {}, { paranoid: true });
 
       this.sandbox.spy(this.User, 'findAll');
       dataloaderSequelize(this.User);

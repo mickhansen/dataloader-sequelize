@@ -18,7 +18,7 @@ unexpected.addType({
       return value && value instanceof Sequelize.Instance;
     },
   inspect: function (value, depth, output, inspect) {
-    const name = value.name || value._modelOptions.name; // v3 vs v4
+    const name = value.name || value.$modelOptions.name || value._modelOptions.name; // v3 vs v4
     output
       .text(name.singular).text('(')
       .append(inspect(value.get(), depth))
