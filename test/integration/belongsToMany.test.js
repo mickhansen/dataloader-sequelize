@@ -1,6 +1,6 @@
-import {connection, randint} from '../helper';
+import {createConnection, randint} from '../helper';
 import sinon from 'sinon';
-import dataloaderSequelize from '../../src';
+import dataloaderSequelize, {createContext, EXPECTED_OPTIONS_KEY} from '../../src';
 import expect from 'unexpected';
 import Sequelize from 'sequelize';
 
@@ -33,6 +33,8 @@ describe('belongsToMany', function () {
     this.sandbox = sinon.sandbox.create();
   });
 
+  before(createConnection);
+
   [
     ['string through', context => {
       context.Project.Users = context.Project.belongsToMany(context.User, {
@@ -60,7 +62,7 @@ describe('belongsToMany', function () {
       });
     }],
     ['model through', context => {
-      context.ProjectMembers = connection.define('project_members', {
+      context.ProjectMembers = context.connection.define('project_members', {
         projectId: {
           type: Sequelize.INTEGER,
           field: 'project_id'
@@ -86,18 +88,20 @@ describe('belongsToMany', function () {
     describe(description, function () {
       describe('simple association', function () {
         before(async function () {
-          this.User = connection.define('user', {
+          this.User = this.connection.define('user', {
             name: Sequelize.STRING,
             awesome: Sequelize.BOOLEAN
           });
-          this.Project = connection.define('project');
+          this.Project = this.connection.define('project');
 
           setup(this);
 
-          await connection.sync({ force: true });
+          await this.connection.sync({ force: true });
           await createData.call(this);
 
           dataloaderSequelize(this.Project);
+
+          this.context = createContext(this.connection);
         });
 
         beforeEach(function () {
@@ -113,6 +117,48 @@ describe('belongsToMany', function () {
         it('batches to a single findAll call when getting', async function () {
           let members1 = this.project1.getMembers()
             , members2 = this.project2.getMembers();
+
+          await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+            this.users[0],
+            this.users[1],
+            this.users[2],
+            this.users[3],
+          ]);
+          await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+            this.users[3],
+            this.users[4],
+            this.users[5],
+            this.users[6]
+          ]);
+
+          expect(this.User.findAll, 'was called once');
+          expect(this.User.findAll, 'to have a call satisfying', [{
+            include: [{
+              association: this.Project.Users.manyFromTarget,
+              where: { project_id: [ this.project1.get('id'), this.project2.get('id') ] }
+            }]
+          }]);
+        });
+
+        it('batches/caches to a single findAll call when getting (createContext)', async function () {
+          let members1 = this.project1.getMembers({[EXPECTED_OPTIONS_KEY]: this.context})
+            , members2 = this.project2.getMembers({[EXPECTED_OPTIONS_KEY]: this.context});
+
+          await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+            this.users[0],
+            this.users[1],
+            this.users[2],
+            this.users[3],
+          ]);
+          await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+            this.users[3],
+            this.users[4],
+            this.users[5],
+            this.users[6]
+          ]);
+
+          members1 = this.project1.getMembers({[EXPECTED_OPTIONS_KEY]: this.context});
+          members2 = this.project2.getMembers({[EXPECTED_OPTIONS_KEY]: this.context});
 
           await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
             this.users[0],
@@ -160,7 +206,7 @@ describe('belongsToMany', function () {
           expect(this.User.findAll, 'was called once');
           expect(this.User.findAll, 'to have a call satisfying', [{
             attributes: [
-              [connection.fn('COUNT', connection.col(['user', 'id'].join('.'))), 'count']
+              [this.connection.fn('COUNT', this.connection.col(['user', 'id'].join('.'))), 'count']
             ],
             include: [{
               attributes: [
@@ -284,11 +330,11 @@ describe('belongsToMany', function () {
   describe('scopes', function () {
     describe('scope on target', function () {
       before(async function () {
-        this.User = connection.define('user', {
+        this.User = this.connection.define('user', {
           name: Sequelize.STRING,
           awesome: Sequelize.BOOLEAN
         });
-        this.Project = connection.define('project');
+        this.Project = this.connection.define('project');
 
         this.Project.AwesomeMembers = this.Project.belongsToMany(this.User, {
           as: 'awesomeMembers',
@@ -313,7 +359,7 @@ describe('belongsToMany', function () {
           targetKey: 'projectId'
         });
 
-        await connection.sync({ force: true });
+        await this.connection.sync({ force: true });
         await createData.call(this);
 
         dataloaderSequelize(this.Project);
@@ -413,12 +459,12 @@ describe('belongsToMany', function () {
 
     describe('scope on through', function () {
       before(async function () {
-        this.User = connection.define('user', {
+        this.User = this.connection.define('user', {
           name: Sequelize.STRING,
           awesome: Sequelize.BOOLEAN
         });
-        this.Project = connection.define('project');
-        this.ProjectMembers = connection.define('project_members', {
+        this.Project = this.connection.define('project');
+        this.ProjectMembers = this.connection.define('project_members', {
           secret: Sequelize.BOOLEAN
         });
 
@@ -447,7 +493,7 @@ describe('belongsToMany', function () {
           targetKey: 'projectId'
         });
 
-        await connection.sync({ force: true });
+        await this.connection.sync({ force: true });
         await createData.call(this);
 
         await this.ProjectMembers.update({

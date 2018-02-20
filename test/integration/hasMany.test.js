@@ -1,8 +1,8 @@
 import Sequelize from 'sequelize';
-import {connection, randint} from '../helper';
+import {createConnection, randint} from '../helper';
 import sinon from 'sinon';
 import DataLoader from 'dataloader';
-import dataloaderSequelize from '../../src';
+import dataloaderSequelize, {createContext, EXPECTED_OPTIONS_KEY} from '../../src';
 import expect from 'unexpected';
 
 async function createData() {
@@ -34,12 +34,14 @@ describe('hasMany', function () {
     this.sandbox = sinon.sandbox.create();
   });
 
+  before(createConnection);
+
   describe('simple association', function () {
     before(async function () {
-      this.User = connection.define('user', {
+      this.User = this.connection.define('user', {
         awesome: Sequelize.BOOLEAN
       });
-      this.Project = connection.define('project');
+      this.Project = this.connection.define('project');
 
       this.Project.hasMany(this.User, {
         as: 'members',
@@ -48,9 +50,11 @@ describe('hasMany', function () {
           field: 'project_id'
         }
       });
-      await connection.sync({ force: true });
+      await this.connection.sync({ force: true });
       await createData.call(this);
       dataloaderSequelize(this.Project);
+
+      this.context = createContext(this.connection);
     });
 
     beforeEach(function () {
@@ -64,6 +68,45 @@ describe('hasMany', function () {
     it('batches to a single findAll call when getting', async function () {
       let members1 = this.project1.getMembers()
         , members2 = this.project2.getMembers();
+
+      await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[0],
+        this.users[1],
+        this.users[2],
+      ]);
+      await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[3],
+        this.users[4],
+        this.users[5],
+        this.users[6]
+      ]);
+
+      expect(this.User.findAll, 'was called once');
+      expect(this.User.findAll, 'to have a call satisfying', [{
+        where: {
+          project_id: [this.project1.get('id'), this.project2.get('id')]
+        }
+      }]);
+    });
+
+    it('batches/caches to a single findAll call when getting (createContext)', async function () {
+      let members1 = this.project1.getMembers({[EXPECTED_OPTIONS_KEY]: this.context})
+        , members2 = this.project2.getMembers({[EXPECTED_OPTIONS_KEY]: this.context});
+
+      await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[0],
+        this.users[1],
+        this.users[2],
+      ]);
+      await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[3],
+        this.users[4],
+        this.users[5],
+        this.users[6]
+      ]);
+
+      members1 = this.project1.getMembers({[EXPECTED_OPTIONS_KEY]: this.context});
+      members2 = this.project2.getMembers({[EXPECTED_OPTIONS_KEY]: this.context});
 
       await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
         this.users[0],
@@ -113,7 +156,7 @@ describe('hasMany', function () {
           project_id: [this.project1.get('id'), this.project2.get('id'), project4.get('id')]
         },
         attributes: [
-          [connection.fn('COUNT', connection.col('id')), 'count'],
+          [this.connection.fn('COUNT', this.connection.col('id')), 'count'],
           'projectId'
         ],
         raw: true,
@@ -217,6 +260,60 @@ describe('hasMany', function () {
       }]);
     });
 
+    it('batches and caches to multiple findAll call when where clauses are different (createContext)', async function () {
+      let members1 = this.project1.getMembers({ where: { awesome: true }, [EXPECTED_OPTIONS_KEY]: this.context})
+        , members2 = this.project2.getMembers({ where: { awesome: false }, [EXPECTED_OPTIONS_KEY]: this.context})
+        , members3 = this.project3.getMembers({ where: { awesome: true }, [EXPECTED_OPTIONS_KEY]: this.context});
+
+      await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[1],
+        this.users[2]
+      ]);
+      await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[3],
+        this.users[5]
+      ]);
+      await expect(members3, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[7],
+        this.users[8]
+      ]);
+
+      members1 = this.project1.getMembers({ where: { awesome: true }, [EXPECTED_OPTIONS_KEY]: this.context});
+      members2 = this.project2.getMembers({ where: { awesome: false }, [EXPECTED_OPTIONS_KEY]: this.context});
+      members3 = this.project3.getMembers({ where: { awesome: true }, [EXPECTED_OPTIONS_KEY]: this.context});
+
+      await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[1],
+        this.users[2]
+      ]);
+      await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[3],
+        this.users[5]
+      ]);
+      await expect(members3, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[7],
+        this.users[8]
+      ]);
+
+      expect(this.User.findAll, 'was called twice');
+      expect(this.User.findAll, 'to have a call satisfying', [{
+        where: {
+          $and: [
+            { project_id: [this.project1.get('id'), this.project3.get('id')]},
+            { awesome: true }
+          ]
+        }
+      }]);
+      expect(this.User.findAll, 'to have a call satisfying', [{
+        where: {
+          $and: [
+            { project_id: [this.project2.get('id')]},
+            { awesome: false }
+          ]
+        }
+      }]);
+    });
+
     it('batches to multiple findAll call with where + limit', async function () {
       let members1 = this.project1.getMembers({ where: { awesome: true }, limit: 1 })
         , members2 = this.project2.getMembers({ where: { awesome: true }, limit: 1 })
@@ -283,12 +380,12 @@ describe('hasMany', function () {
 
   describe('paranoid', function () {
     before(async function () {
-      this.User = connection.define('user', {}, {
+      this.User = this.connection.define('user', {}, {
         paranoid: true
       });
-      this.Project = connection.define('project');
+      this.Project = this.connection.define('project');
       this.Project.hasMany(this.User, { as: 'members' });
-      await connection.sync({ force: true });
+      await this.connection.sync({ force: true });
       await createData.call(this);
       dataloaderSequelize(this.Project);
     });
@@ -382,10 +479,10 @@ describe('hasMany', function () {
 
   describe('scope on target', function () {
     before(async function () {
-      this.User = connection.define('user', {
+      this.User = this.connection.define('user', {
         awesome: Sequelize.BOOLEAN
       });
-      this.Project = connection.define('project');
+      this.Project = this.connection.define('project');
       this.Project.hasMany(this.User, { as: 'members' });
       this.Project.hasMany(this.User, {
         as: 'awesomeMembers',
@@ -398,7 +495,7 @@ describe('hasMany', function () {
         }
       });
 
-      await connection.sync({ force: true });
+      await this.connection.sync({ force: true });
       await createData.call(this);
       dataloaderSequelize(this.Project);
     });
@@ -472,10 +569,10 @@ describe('hasMany', function () {
 
   describe('support sourceKey in hasMany associations', function () {
     before(async function () {
-      this.User = connection.define('user', {
+      this.User = this.connection.define('user', {
         project__c: Sequelize.STRING,
       });
-      this.Project = connection.define('project', {
+      this.Project = this.connection.define('project', {
         sfid: {
           type: Sequelize.STRING,
           unique: true,
@@ -490,7 +587,7 @@ describe('hasMany', function () {
         sourceKey: 'sfid',
       });
 
-      await connection.sync({ force: true });
+      await this.connection.sync({ force: true });
 
       this.project1 = await this.Project.create({
         id: randint(),
