@@ -456,7 +456,7 @@ export const EXPECTED_OPTIONS_KEY = 'dataloader_sequelize_context';
 export function createContext(sequelize) {
   const loaders = {};
 
-  shimModel(/^4/.test(sequelize.version) ? // v3 vs v4
+  shimModel(/^4/.test(sequelize.constructor.version) ? // v3 vs v4
     sequelize.Model : sequelize.Model.prototype);
   shimBelongsTo(sequelize.Association.BelongsTo.prototype);
   shimHasOne(sequelize.Association.HasOne.prototype);
@@ -493,7 +493,7 @@ export function createContext(sequelize) {
     }
 
     results.forEach(result => {
-      const modelName = result.$modelOptions.name.singular || result._modelOptions.name.singular;
+      const modelName = result.$modelOptions ? result.$modelOptions.name.singular : result._modelOptions.name.singular;
       Object.keys(loaders[modelName].bySingleAttribute).forEach(attribute => {
         loaders[modelName].bySingleAttribute[attribute].prime(result.get(attribute), result);
       });

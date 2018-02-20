@@ -156,7 +156,41 @@ describe('hasMany', function () {
           project_id: [this.project1.get('id'), this.project2.get('id'), project4.get('id')]
         },
         attributes: [
-          [this.connection.fn('COUNT', this.connection.col('id')), 'count'],
+          [this.connection.fn('COUNT', this.connection.col('user.id')), 'count'],
+          'projectId'
+        ],
+        raw: true,
+        group: ['projectId'],
+        multiple: false
+      }]);
+    });
+
+    it('batches/caches to a single findAll call when counting', async function () {
+      let project4 = await this.Project.create();
+
+      let members1 = this.project1.countMembers({[EXPECTED_OPTIONS_KEY]: this.context})
+        , members2 = this.project2.countMembers({[EXPECTED_OPTIONS_KEY]: this.context})
+        , members3 = project4.countMembers({[EXPECTED_OPTIONS_KEY]: this.context});
+
+      await expect(members1, 'to be fulfilled with', 3);
+      await expect(members2, 'to be fulfilled with', 4);
+      await expect(members3, 'to be fulfilled with', 0);
+
+      members1 = this.project1.countMembers({[EXPECTED_OPTIONS_KEY]: this.context});
+      members2 = this.project2.countMembers({[EXPECTED_OPTIONS_KEY]: this.context});
+      members3 = project4.countMembers({[EXPECTED_OPTIONS_KEY]: this.context});
+
+      await expect(members1, 'to be fulfilled with', 3);
+      await expect(members2, 'to be fulfilled with', 4);
+      await expect(members3, 'to be fulfilled with', 0);
+
+      expect(this.User.findAll, 'was called once');
+      expect(this.User.findAll, 'to have a call satisfying', [{
+        where: {
+          project_id: [this.project1.get('id'), this.project2.get('id'), project4.get('id')]
+        },
+        attributes: [
+          [this.connection.fn('COUNT', this.connection.col('user.id')), 'count'],
           'projectId'
         ],
         raw: true,
