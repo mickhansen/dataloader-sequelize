@@ -217,7 +217,7 @@ function shimModel(target) {
       if (options[EXPECTED_OPTIONS_KEY]) {
         loader = options[EXPECTED_OPTIONS_KEY].loaders[this.name].byPrimaryKey;
       } else {
-        loader = cachedLoaderForModel(this, this.primaryKeyAttribute, this.primaryKeyField);
+        loader = cachedLoaderForModel(this, this.primaryKeyAttribute, this.primaryKeyField, options);
       }
       return loader.load(id).then(rejectOnEmpty.bind(null, options));
     };
@@ -472,7 +472,7 @@ export function createContext(sequelize, options = {}) {
     loaders[Model.name] = {
       bySingleAttribute: {}
     };
-    loaders[Model.name].bySingleAttribute[Model.primaryKeyAttribute] = createModelAttributeLoader(Model, Model.primaryKeyAttribute);
+    loaders[Model.name].bySingleAttribute[Model.primaryKeyAttribute] = createModelAttributeLoader(Model, Model.primaryKeyAttribute, options);
     loaders[Model.name].byId = loaders[Model.name].byPrimaryKey = loaders[Model.name].bySingleAttribute[Model.primaryKeyAttribute];
   });
 
@@ -481,11 +481,11 @@ export function createContext(sequelize, options = {}) {
       if (association.associationType === 'BelongsTo') {
         const Target = association.target;
         if (association.targetKey !== Target.primaryKeyAttribute) {
-          loaders[Target.name].bySingleAttribute[association.targetKey] = createModelAttributeLoader(Target, association.targetKey);
+          loaders[Target.name].bySingleAttribute[association.targetKey] = createModelAttributeLoader(Target, association.targetKey, options);
         }
       } else if (association.associationType === 'HasOne') {
         const Target = association.target;
-        loaders[Target.name].bySingleAttribute[association.foreignKey] = createModelAttributeLoader(Target, association.foreignKey);
+        loaders[Target.name].bySingleAttribute[association.foreignKey] = createModelAttributeLoader(Target, association.foreignKey, options);
       }
     });
   });
@@ -506,12 +506,13 @@ export function createContext(sequelize, options = {}) {
   return {loaders, prime};
 }
 
-function createModelAttributeLoader(Model, attribute) {
+function createModelAttributeLoader(Model, attribute, options = {}) {
   return new DataLoader(keys => {
     return Model.findAll({
       where: {
         [attribute]: keys
-      }
+      },
+      logging: options.logging
     }).then(mapResult.bind(null, attribute, keys, {}));
   }, {
     cache: true
