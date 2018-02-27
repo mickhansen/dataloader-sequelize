@@ -496,7 +496,7 @@ export function createContext(sequelize, options = {}) {
     }
 
     results.forEach(result => {
-      const modelName = result.$modelOptions ? result.$modelOptions.name.singular : result._modelOptions.name.singular;
+      const modelName = result.Model ? result.Model.name : result.constructor.name;
       Object.keys(loaders[modelName].bySingleAttribute).forEach(attribute => {
         loaders[modelName].bySingleAttribute[attribute].prime(result.get(attribute), result);
       });
