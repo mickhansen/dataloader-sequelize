@@ -427,9 +427,12 @@ export function resetCache() {
   if (GLOBAL_CACHE) GLOBAL_CACHE.reset();
 }
 
-let clsNamespace;
 function activeClsTransaction() {
-  if (clsNamespace && clsNamespace.get('transaction')) {
+  if (/^4/.test(Sequelize.version)) {
+    if (Sequelize._cls && Sequelize._cls.get('transaction')) {
+      return true;
+    }
+  } else if (Sequelize.cls && Sequelize.cls.get('transaction')) {
     return true;
   }
   return false;
@@ -443,10 +446,6 @@ export default function (target, options = {}) {
 
   if (!GLOBAL_CACHE) {
     GLOBAL_CACHE = LRU(options);
-  }
-
-  if (options.clsNamespace) {
-    clsNamespace = options.clsNamespace;
   }
 
   if (target.associationType) {

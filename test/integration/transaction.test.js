@@ -30,9 +30,7 @@ describe('Transactions', function () {
         { id: randint() },
         { id: randint() }
       ], { returning: true });
-      
 
-      this.sandbox.spy(this.User, 'findById');
       this.sandbox.spy(this.User, 'findAll');
     });
 
@@ -65,7 +63,7 @@ describe('Transactions', function () {
       
       this.User = connection.define('user');
     
-      dataloaderSequelize(this.User, { clsNamespace: this.namespace });
+      dataloaderSequelize(this.User);
 
       await connection.sync({
         force: true
@@ -75,9 +73,7 @@ describe('Transactions', function () {
         { id: randint() },
         { id: randint() }
       ], { returning: true });
-      
 
-      this.sandbox.spy(this.User, 'findById');
       this.sandbox.spy(this.User, 'findAll');
     })
 

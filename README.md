@@ -15,7 +15,6 @@ dataloader-sequelize is designed to provide per-request catching/batching for se
 * Should be called after all models and associations are defined
 * `sequelize` a sequelize instance
 * `options.max=500` the maximum number of simultaneous dataloaders to store in memory. The loaders are stored in an LRU cache
-* `options.clsNamespace` The CLS namespace used by Sequelize to manage transactions
 
 # Usage
 ```js
