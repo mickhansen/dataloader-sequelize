@@ -209,7 +209,7 @@ function shimModel(target) {
       if ([null, undefined].indexOf(id) !== -1) {
         return Promise.resolve(null);
       }
-      if (options.transaction || options.include) {
+      if (options.transaction || options.include || activeClsTransaction()) {
         return original.apply(this, arguments);
       }
 
@@ -229,7 +229,7 @@ function shimBelongsTo(target) {
 
   shimmer.wrap(target, 'get', original => {
     return function batchedGetBelongsTo(instance, options = {}) {
-      if (Array.isArray(instance) || options.include || options.transaction) {
+      if (Array.isArray(instance) || options.include || options.transaction || activeClsTransaction()) {
         return original.apply(this, arguments);
       }
 
@@ -256,7 +256,7 @@ function shimHasOne(target) {
 
   shimmer.wrap(target, 'get', original => {
     return function batchedGetHasOne(instance, options = {}) {
-      if (Array.isArray(instance) || options.include || options.transaction) {
+      if (Array.isArray(instance) || options.include || options.transaction || activeClsTransaction()) {
         return original.apply(this, arguments);
       }
 
@@ -277,7 +277,7 @@ function shimHasMany(target) {
   shimmer.wrap(target, 'get', original => {
     return function bathedGetHasMany(instances, options = {}) {
       let isCount = false;
-      if (options.include || options.transaction) {
+      if (options.include || options.transaction || activeClsTransaction()) {
         return original.apply(this, arguments);
       }
 
@@ -345,7 +345,7 @@ function shimBelongsToMany(target) {
       let isCount = false;
       assert(this.paired, '.paired missing on belongsToMany association. You need to set up both sides of the association');
 
-      if (options.include || options.transaction) {
+      if (options.include || options.transaction || activeClsTransaction()) {
         return original.apply(this, arguments);
       }
 
@@ -426,6 +426,18 @@ let GLOBAL_CACHE;
 export function resetCache() {
   if (GLOBAL_CACHE) GLOBAL_CACHE.reset();
 }
+
+function activeClsTransaction() {
+  if (/^4/.test(Sequelize.version)) {
+    if (Sequelize._cls && Sequelize._cls.get('transaction')) {
+      return true;
+    }
+  } else if (Sequelize.cls && Sequelize.cls.get('transaction')) {
+    return true;
+  }
+  return false;
+}
+
 export default function (target, options = {}) {
   options = {
     ...options,
