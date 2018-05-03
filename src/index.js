@@ -84,7 +84,7 @@ export function getCacheKey(model, attribute, options) {
 function mergeWhere(where, optionsWhere) {
   if (optionsWhere) {
     return {
-      [Sequelize.Op.and]: [where, optionsWhere]
+      [Sequelize.Op ? Sequelize.Op.and : '$and']: [where, optionsWhere]
     };
   }
   return where;
