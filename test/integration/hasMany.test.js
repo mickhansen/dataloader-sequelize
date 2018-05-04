@@ -278,7 +278,7 @@ describe('hasMany', function () {
       expect(this.User.findAll, 'was called twice');
       expect(this.User.findAll, 'to have a call satisfying', [{
         where: {
-          $and: [
+          [Sequelize.Op ? Sequelize.Op.and : '$and']: [
             { project_id: [this.project1.get('id'), this.project3.get('id')]},
             { awesome: true }
           ]
@@ -286,7 +286,7 @@ describe('hasMany', function () {
       }]);
       expect(this.User.findAll, 'to have a call satisfying', [{
         where: {
-          $and: [
+          [Sequelize.Op ? Sequelize.Op.and : '$and']: [
             { project_id: [this.project2.get('id')]},
             { awesome: false }
           ]
@@ -332,7 +332,7 @@ describe('hasMany', function () {
       expect(this.User.findAll, 'was called twice');
       expect(this.User.findAll, 'to have a call satisfying', [{
         where: {
-          $and: [
+          [Sequelize.Op ? Sequelize.Op.and : '$and']: [
             { project_id: [this.project1.get('id'), this.project3.get('id')]},
             { awesome: true }
           ]
@@ -340,7 +340,7 @@ describe('hasMany', function () {
       }]);
       expect(this.User.findAll, 'to have a call satisfying', [{
         where: {
-          $and: [
+          [Sequelize.Op ? Sequelize.Op.and : '$and']: [
             { project_id: [this.project2.get('id')]},
             { awesome: false }
           ]
@@ -380,7 +380,7 @@ describe('hasMany', function () {
       }]);
       expect(this.User.findAll, 'to have a call satisfying', [{
         where: {
-          $and: [
+          [Sequelize.Op ? Sequelize.Op.and : '$and']: [
             { project_id: [this.project3.get('id')] },
             { awesome: true }
           ]
@@ -389,7 +389,7 @@ describe('hasMany', function () {
       }]);
       expect(this.User.findAll, 'to have a call satisfying', [{
         where: {
-          $and: [
+          [Sequelize.Op ? Sequelize.Op.and : '$and']: [
             { project_id: [this.project2.get('id')] },
             { awesome: false }
           ]
