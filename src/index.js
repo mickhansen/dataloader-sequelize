@@ -294,7 +294,7 @@ function shimHasMany(target) {
 
       if (this.scope) {
         options.where = {
-          $and: [
+          [Sequelize.Op ? Sequelize.Op.and : '$and']: [
             options.where,
             this.scope
           ]
@@ -361,7 +361,7 @@ function shimBelongsToMany(target) {
 
       if (this.scope) {
         options.where = {
-          $and: [
+          [Sequelize.Op ? Sequelize.Op.and : '$and']: [
             options.where,
             this.scope
           ]
@@ -371,7 +371,7 @@ function shimBelongsToMany(target) {
       options.through = options.through || {};
       if (this.through.scope) {
         options.through.where = {
-          $and: [
+          [Sequelize.Op ? Sequelize.Op.and : '$and']: [
             options.through.where,
             this.through.scope
           ]
