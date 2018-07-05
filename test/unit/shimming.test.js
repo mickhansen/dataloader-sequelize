@@ -38,7 +38,7 @@ describe('shimming', function () {
       connection.Association.BelongsToMany.prototype.get
     ];
 
-    if ( /^4/.test(Sequelize.version) ) {
+    if ( /^[45]/.test(Sequelize.version) ) {
       wrapped.push(
         connection.Model.findById
       );
@@ -90,7 +90,7 @@ describe('shimming', function () {
     afterEach(function () {
       const wrapped = [ this.User.associations.tasks.get ];
 
-      if ( /^4/.test(Sequelize.version) ) {
+      if ( /^[45]/.test(Sequelize.version) ) {
         wrapped.push(
           this.User.findById,
         );

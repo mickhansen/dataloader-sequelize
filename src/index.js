@@ -200,7 +200,7 @@ function loaderForModel(model, attribute, attributeField, options = {}) {
 function shimModel(target) {
   if (target.findById.__wrapped) return;
 
-  const methods = /^4/.test(Sequelize.version) ?
+  const methods = /^[45]/.test(Sequelize.version) ?
     ['findById'] :
     ['findById', 'findByPrimary'];
 
@@ -428,7 +428,7 @@ export function resetCache() {
 }
 
 function activeClsTransaction() {
-  if (/^4/.test(Sequelize.version)) {
+  if (/^[45]/.test(Sequelize.version)) {
     if (Sequelize._cls && Sequelize._cls.get('transaction')) {
       return true;
     }
@@ -455,7 +455,7 @@ export default function (target, options = {}) {
     values(target.associations).forEach(shimAssociation);
   } else {
     // Assume target is the sequelize constructor
-    shimModel(/^4/.test(Sequelize.version) ? // v3 vs v4
+    shimModel(/^[45]/.test(Sequelize.version) ? // v3 vs v4
       target.Model : target.Model.prototype);
     shimBelongsTo(target.Association.BelongsTo.prototype);
     shimHasOne(target.Association.HasOne.prototype);
@@ -468,7 +468,7 @@ export const EXPECTED_OPTIONS_KEY = 'dataloader_sequelize_context';
 export function createContext(sequelize, options = {}) {
   const loaders = {};
 
-  shimModel(/^4/.test(sequelize.constructor.version) ? // v3 vs v4
+  shimModel(/^[45]/.test(sequelize.constructor.version) ? // v3 vs v4
     sequelize.Model : sequelize.Model.prototype);
   shimBelongsTo(sequelize.Association.BelongsTo.prototype);
   shimHasOne(sequelize.Association.HasOne.prototype);

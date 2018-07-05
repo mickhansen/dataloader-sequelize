@@ -54,7 +54,7 @@ describe('Transactions', function () {
   describe('CLS', function () {
     beforeEach(async function () {
       this.namespace = cls.createNamespace('sequelize');
-      if (/^4/.test(Sequelize.version)) {
+      if (/^[45]/.test(Sequelize.version)) {
         Sequelize.useCLS(this.namespace);
       } else {
         Sequelize.cls = this.namespace;
@@ -78,7 +78,7 @@ describe('Transactions', function () {
     })
 
     after(function () {
-      if (/^4/.test(Sequelize.version)) {
+      if (/^[45]/.test(Sequelize.version)) {
         delete Sequelize._cls;
       } else {
         delete Sequelize.cls;
