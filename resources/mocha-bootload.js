@@ -10,7 +10,7 @@ require('sinon-as-promised')(Bluebird);
 var Sequelize = require('sequelize');
 unexpected.addType({
   name: 'Sequelize.Instance',
-  identify: /^4/.test(Sequelize.version) ?
+  identify: /^[45]/.test(Sequelize.version) ?
     function (value) {
       return value && value instanceof Sequelize.Model && 'isNewRecord' in value;
     } :
