@@ -411,7 +411,7 @@ describe('hasMany', function () {
     });
   });
 
-  describe('deep association', function () {
+  describe('deep association with include.separate', function () {
     before(async function () {
       this.UserDeep = this.connection.define('userDeep', {
         userId: {
