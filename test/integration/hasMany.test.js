@@ -409,7 +409,98 @@ describe('hasMany', function () {
       expect(project2.members, 'to have length', 4);
       expect(DataLoader.prototype.load, 'was not called');
     });
+  });
 
+  describe('deep association', function () {
+    before(async function () {
+      this.UserDeep = this.connection.define('userDeep', {
+        userId: {
+          type: Sequelize.INTEGER,
+          primaryKey: true,
+          autoIncrement: true
+        },
+        name: Sequelize.STRING,
+      });
+
+      this.RoleDeep = this.connection.define('roleDeep', {
+        roleId: {
+          type: Sequelize.INTEGER,
+          primaryKey: true,
+          autoIncrement: true
+        },
+        title: Sequelize.STRING,
+      });
+
+      this.PermissionDeep = this.connection.define('permissionDeep', {
+        permissionId: {
+          type: Sequelize.INTEGER,
+          primaryKey: true,
+          autoIncrement: true
+        },
+        title: Sequelize.STRING,
+      });
+
+      this.RoleDeep.hasMany(this.PermissionDeep, {
+        as: 'permissions',
+        foreignKey: 'roleId'
+      });
+
+      this.UserDeep.hasOne(this.RoleDeep, {
+        as: 'role',
+        foreignKey: 'roleId'
+      });
+
+      await this.connection.sync({ force: true });
+
+      this.user1 = await this.UserDeep.create({
+        name: 'John Doe',
+        role: {
+          title: 'admin',
+          permissions: [
+            { title: 'permission #1' },
+            { title: 'permission #2' },
+          ]
+        }
+      }, {
+        include: [{
+          model: this.RoleDeep,
+          as: 'role',
+          include: [{ model: this.PermissionDeep, as: 'permissions' }]
+        }]
+      });
+
+      this.context = createContext(this.connection);
+    });
+
+    it('correctly finds twice with separated query', async function() {
+      const userFirstFetch = await this.UserDeep.findById(this.user1.userId, {
+        include: [{ model: this.RoleDeep, as: 'role' }]
+      });
+
+      expect(userFirstFetch, 'not to be null');
+      expect(userFirstFetch.name, 'to be', 'John Doe');
+      expect(userFirstFetch.role, 'not to be null');
+      expect(userFirstFetch.role.title, 'to be', 'admin');
+
+      const userSecondFetch = await this.UserDeep.findById(this.user1.userId, {
+        include: [{
+          model: this.RoleDeep,
+          as: 'role',
+          include: [{ model: this.PermissionDeep, as: 'permissions', separate: true }]
+        }]
+      });
+
+      expect(userSecondFetch, 'not to be null');
+      expect(userSecondFetch.name, 'to be', 'John Doe');
+      expect(userSecondFetch.role, 'not to be null');
+      expect(userSecondFetch.role.title, 'to be', 'admin');
+      expect(userSecondFetch.role.permissions, 'to have length', 2);
+      expect(
+        userSecondFetch.role.permissions[0].title,
+        'to be one of',
+        ['permission #1', 'permission #2']
+      );
+    });
   });
 
   describe('paranoid', function () {
