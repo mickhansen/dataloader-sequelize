@@ -274,7 +274,8 @@ describe('belongsToMany', function () {
           let members1 = this.project1.getMembers({ where: { awesome: true }, limit: 1 })
             , members2 = this.project2.getMembers({ where: { awesome: true }, limit: 1 })
             , members3 = this.project2.getMembers({ where: { awesome: false }, limit: 2 })
-            , members4 = this.project3.getMembers({ where: { awesome: true }, limit: 2 });
+            , members4 = this.project3.getMembers({ where: { awesome: true }, limit: 2 })
+            , members5 = this.project3.getMembers({ where: { awesome: true }, limit: 2 });
 
           await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
             this.users[1]
@@ -287,6 +288,10 @@ describe('belongsToMany', function () {
             this.users[5]
           ]);
           await expect(members4, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+            this.users[6],
+            this.users[7]
+          ]);
+          await expect(members5, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
             this.users[6],
             this.users[7]
           ]);

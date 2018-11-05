@@ -2,7 +2,7 @@ import Sequelize from 'sequelize';
 import shimmer from 'shimmer';
 import DataLoader from 'dataloader';
 import Promise from 'bluebird';
-import {groupBy, property, values, clone, isEmpty} from 'lodash';
+import {groupBy, property, values, clone, isEmpty, uniq} from 'lodash';
 import LRU from 'lru-cache';
 import assert from 'assert';
 
@@ -137,7 +137,7 @@ function loaderForBTM(model, joinTableName, foreignKey, foreignKeyField, options
         through: options.through,
         on: association,
         limit: findOptions.limit,
-        values: keys
+        values: uniq(keys)
       };
     } else {
       findOptions.include = [{
@@ -182,7 +182,7 @@ function loaderForModel(model, attribute, attributeField, options = {}) {
       findOptions.groupedLimit = {
         limit: findOptions.limit,
         on: attributeField,
-        values: keys
+        values: uniq(keys)
       };
       delete findOptions.limit;
     } else {
