@@ -133,10 +133,11 @@ function loaderForBTM(model, joinTableName, foreignKey, foreignKeyField, options
     let findOptions = Object.assign({}, options);
     delete findOptions.rejectOnEmpty;
     if (findOptions.limit) {
+      const limit = findOptions.offset && findOptions.offset > 0 ? [findOptions.limit, findOptions.offset] : findOptions.limit;
       findOptions.groupedLimit = {
         through: options.through,
         on: association,
-        limit: findOptions.limit,
+        limit,
         values: uniq(keys)
       };
     } else {
@@ -179,12 +180,14 @@ function loaderForModel(model, attribute, attributeField, options = {}) {
     delete findOptions.rejectOnEmpty;
 
     if (findOptions.limit && keys.length > 1) {
+      const limit = findOptions.offset && findOptions.offset > 0 ? [findOptions.limit, findOptions.offset] : findOptions.limit;
       findOptions.groupedLimit = {
-        limit: findOptions.limit,
+        limit,
         on: attributeField,
         values: uniq(keys)
       };
       delete findOptions.limit;
+      delete findOptions.offset;
     } else {
       findOptions.where = mergeWhere({
         [attributeField]: keys
