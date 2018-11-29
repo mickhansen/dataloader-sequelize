@@ -280,7 +280,7 @@ function shimHasMany(target) {
   shimmer.wrap(target, 'get', original => {
     return function bathedGetHasMany(instances, options = {}) {
       let isCount = false;
-      if (options.include || options.transaction || activeClsTransaction()) {
+      if (options.include || options.transaction || options.separate || activeClsTransaction()) {
         return original.apply(this, arguments);
       }
 
