@@ -327,9 +327,23 @@ function shimHasMany(target) {
       let key = this.sourceKey || this.source.primaryKeyAttribute;
 
       if (Array.isArray(instances)) {
-        return Promise.map(instances, instance => loader.load(instance.get(key)));
+        return Promise.map(instances, instance => {
+          let sourceKeyValue = instance.get(key);
+
+          if (sourceKeyValue === undefined || sourceKeyValue === null) {
+            return Promise.resolve(null);
+          }
+
+          return loader.load(sourceKeyValue);
+        });
       } else {
-        return loader.load(instances.get(key)).then(result => {
+        let sourceKeyValue = instances.get(key);
+
+        if (sourceKeyValue === undefined || sourceKeyValue === null) {
+          return Promise.resolve(null);
+        }
+
+        return loader.load(sourceKeyValue).then(result => {
           if (isCount && !result) {
             result = { count: 0 };
           }
