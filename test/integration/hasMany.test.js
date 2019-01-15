@@ -156,7 +156,7 @@ describe('hasMany', function () {
           project_id: [this.project1.get('id'), this.project2.get('id'), project4.get('id')]
         },
         attributes: [
-          [this.connection.fn('COUNT', this.connection.col('id')), 'count'],
+          [this.connection.fn('COUNT', expect.it('to be defined')), 'count'],
           'projectId'
         ],
         raw: true,
@@ -190,7 +190,7 @@ describe('hasMany', function () {
           project_id: [this.project1.get('id'), this.project2.get('id'), project4.get('id')]
         },
         attributes: [
-          [this.connection.fn('COUNT', this.connection.col('id')), 'count'],
+          [this.connection.fn('COUNT', expect.it('to be defined')), 'count'],
           'projectId'
         ],
         raw: true,
@@ -719,6 +719,10 @@ describe('hasMany', function () {
         sfid: '001abc',
       }, {returning: true});
 
+      this.userlessProject = await this.Project.create({
+        id: randint(),
+      }, {returning: true});
+
       this.users = await this.User.bulkCreate([
         { id: randint() },
         { id: randint() },
@@ -730,6 +734,10 @@ describe('hasMany', function () {
       dataloaderSequelize(this.Project);
     });
 
+    beforeEach(function () {
+      this.sandbox.spy(this.User, 'findAll');
+    });
+
     afterEach(function () {
       this.sandbox.restore();
     });
@@ -738,6 +746,14 @@ describe('hasMany', function () {
       let members1 = this.project1.getUsers();
 
       await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', this.users);
+      expect(this.User.findAll, 'was called once');
+    });
+
+    it('does not try to load if sourceKey is null', async function () {
+      let users = this.userlessProject.getUsers();
+
+      await expect(users, 'when fulfilled', 'to exhaustively satisfy', null);
+      expect(this.User.findAll, 'was not called');
     });
   });
 });
