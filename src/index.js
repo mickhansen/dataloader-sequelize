@@ -204,7 +204,7 @@ function shimModel(target) {
   if (target.findById.__wrapped) return;
 
   const methods = /^[45]/.test(Sequelize.version) ?
-    ['findById'] :
+    ['findById', 'findByPk'] :
     ['findById', 'findByPrimary'];
 
   shimmer.massWrap(target, methods, original => {
