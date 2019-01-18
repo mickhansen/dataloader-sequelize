@@ -3,8 +3,9 @@ import {createConnection, randint} from '../helper';
 import sinon from 'sinon';
 import dataloaderSequelize, {createContext, EXPECTED_OPTIONS_KEY} from '../../src';
 import expect from 'unexpected';
+import {method} from '../../src/helper';
 
-describe('findById', function () {
+describe('findByPk', function () {
   beforeEach(createConnection);
   beforeEach(function () {
     this.sandbox = sinon.sandbox.create();
@@ -34,13 +35,13 @@ describe('findById', function () {
     });
 
     it('works with null', async function () {
-      await expect(this.User.findById(null), 'to be fulfilled with', null);
+      await expect(this.User[method(this.User, 'findByPk')](null), 'to be fulfilled with', null);
       expect(this.User.findAll, 'was not called');
     });
 
     it('batches to a single findAll call', async function () {
-      let user1 = this.User.findById(this.users[2].get('id'))
-        , user2 = this.User.findById(this.users[1].get('id'));
+      let user1 = this.User[method(this.User, 'findByPk')](this.users[2].get('id'))
+        , user2 = this.User[method(this.User, 'findByPk')](this.users[1].get('id'));
 
       await expect(user1, 'to be fulfilled with', this.users[2]);
       await expect(user2, 'to be fulfilled with', this.users[1]);
@@ -54,14 +55,14 @@ describe('findById', function () {
     });
 
     it('batches and caches to a single findAll call (createContext)', async function () {
-      let user1 = this.User.findById(this.users[2].get('id'), {[EXPECTED_OPTIONS_KEY]: this.context})
-        , user2 = this.User.findById(this.users[1].get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
+      let user1 = this.User[method(this.User, 'findByPk')](this.users[2].get('id'), {[EXPECTED_OPTIONS_KEY]: this.context})
+        , user2 = this.User[method(this.User, 'findByPk')](this.users[1].get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
 
       await expect(user1, 'to be fulfilled with', this.users[2]);
       await expect(user2, 'to be fulfilled with', this.users[1]);
 
-      user1 = this.User.findById(this.users[2].get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
-      user2 = this.User.findById(this.users[1].get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
+      user1 = this.User[method(this.User, 'findByPk')](this.users[2].get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
+      user2 = this.User[method(this.User, 'findByPk')](this.users[1].get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
 
       await expect(user1, 'to be fulfilled with', this.users[2]);
       await expect(user2, 'to be fulfilled with', this.users[1]);
@@ -75,9 +76,9 @@ describe('findById', function () {
     });
 
     it('supports rejectOnEmpty', async function () {
-      let user1 = this.User.findById(this.users[2].get('id'), { rejectOnEmpty: true })
-        , user2 = this.User.findById(42, { rejectOnEmpty: true })
-        , user3 = this.User.findById(42);
+      let user1 = this.User[method(this.User, 'findByPk')](this.users[2].get('id'), { rejectOnEmpty: true })
+        , user2 = this.User[method(this.User, 'findByPk')](42, { rejectOnEmpty: true })
+        , user3 = this.User[method(this.User, 'findByPk')](42);
 
       await expect(user1, 'to be fulfilled with', this.users[2]);
       await expect(user2, 'to be rejected');
@@ -111,8 +112,8 @@ describe('findById', function () {
     });
 
     it('batches to a single findAll call', async function () {
-      let user1 = this.User.findById(this.users[2].get('identifier'))
-        , user2 = this.User.findById(this.users[1].get('identifier'));
+      let user1 = this.User[method(this.User, 'findByPk')](this.users[2].get('identifier'))
+        , user2 = this.User[method(this.User, 'findByPk')](this.users[1].get('identifier'));
 
       await expect(user1, 'to be fulfilled with', this.users[2]);
       await expect(user2, 'to be fulfilled with', this.users[1]);
@@ -126,14 +127,14 @@ describe('findById', function () {
     });
 
     it('batches and caches to a single findAll call (createContext)', async function () {
-      let user1 = this.User.findById(this.users[2].get('identifier'), {[EXPECTED_OPTIONS_KEY]: this.context})
-        , user2 = this.User.findById(this.users[1].get('identifier'), {[EXPECTED_OPTIONS_KEY]: this.context});
+      let user1 = this.User[method(this.User, 'findByPk')](this.users[2].get('identifier'), {[EXPECTED_OPTIONS_KEY]: this.context})
+        , user2 = this.User[method(this.User, 'findByPk')](this.users[1].get('identifier'), {[EXPECTED_OPTIONS_KEY]: this.context});
 
       await expect(user1, 'to be fulfilled with', this.users[2]);
       await expect(user2, 'to be fulfilled with', this.users[1]);
 
-      user1 = this.User.findById(this.users[2].get('identifier'), {[EXPECTED_OPTIONS_KEY]: this.context});
-      user2 = this.User.findById(this.users[1].get('identifier'), {[EXPECTED_OPTIONS_KEY]: this.context});
+      user1 = this.User[method(this.User, 'findByPk')](this.users[2].get('identifier'), {[EXPECTED_OPTIONS_KEY]: this.context});
+      user2 = this.User[method(this.User, 'findByPk')](this.users[1].get('identifier'), {[EXPECTED_OPTIONS_KEY]: this.context});
 
       await expect(user1, 'to be fulfilled with', this.users[2]);
       await expect(user2, 'to be fulfilled with', this.users[1]);
@@ -172,8 +173,8 @@ describe('findById', function () {
     });
 
     it('batches to a single findAll call', async function () {
-      let user1 = this.User.findById(this.users[2].get('id'))
-        , user2 = this.User.findById(this.users[1].get('id'));
+      let user1 = this.User[method(this.User, 'findByPk')](this.users[2].get('id'))
+        , user2 = this.User[method(this.User, 'findByPk')](this.users[1].get('id'));
 
       await expect(user1, 'to be fulfilled with', this.users[2]);
       await expect(user2, 'to be fulfilled with', this.users[1]);
@@ -206,8 +207,8 @@ describe('findById', function () {
     });
 
     it('batches to a single findAll call', async function () {
-      let user1 = this.User.findById(this.users[2].get('id'))
-        , user2 = this.User.findById(this.users[1].get('id'));
+      let user1 = this.User[method(this.User, 'findByPk')](this.users[2].get('id'))
+        , user2 = this.User[method(this.User, 'findByPk')](this.users[1].get('id'));
 
       await expect(user1, 'to be fulfilled with', null);
       await expect(user2, 'to be fulfilled with', this.users[1]);

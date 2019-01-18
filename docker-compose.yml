@@ -1,5 +1,5 @@
 dev:
-  image: mhart/alpine-node:4
+  image: mhart/alpine-node:8.10
   links:
    - db
   working_dir: /src

@@ -505,7 +505,7 @@ describe('belongsToMany', function () {
           secret: true
         }, {
           where: {
-            $or: [
+            [Sequelize.Op ? Sequelize.Op.or : '$or']: [
               { projectId: this.project1.get('id'), userId: [this.users[0].get('id'), this.users[1].get('id')]},
               { projectId: this.project2.get('id'), userId: [this.users[4].get('id')]},
               { projectId: this.project3.get('id'), userId: [this.users[6].get('id'), this.users[7].get('id'), this.users[8].get('id')]}

@@ -89,7 +89,7 @@ describe('hasOne', function () {
       , project3 = this.user3.getMainProject();
 
     await expect(project1, 'to be fulfilled with', this.project1);
-    await expect(project2, 'to be rejected with', new this.connection.EmptyResultError());
+    await expect(project2, 'to be rejected with', new this.connection.constructor.EmptyResultError());
     await expect(project3, 'to be fulfilled with', null);
   });
 });

@@ -1,6 +1,7 @@
 import {connection} from '../helper';
 import Sequelize from 'sequelize';
 import dataloaderSequelize from '../../src';
+import {methods} from '../../src/helper';
 import expect from 'unexpected';
 import sinon from 'sinon';
 import Promise from 'bluebird';
@@ -32,24 +33,25 @@ describe('shimming', function () {
 
   afterEach(function () {
     const wrapped = [
-      connection.Association.BelongsTo.prototype.get,
-      connection.Association.HasOne.prototype.get,
-      connection.Association.HasMany.prototype.get,
-      connection.Association.BelongsToMany.prototype.get
+      connection.constructor.Association.BelongsTo.prototype.get,
+      connection.constructor.Association.HasOne.prototype.get,
+      connection.constructor.Association.HasMany.prototype.get,
+      connection.constructor.Association.BelongsToMany.prototype.get
     ];
 
-    if ( /^[45]/.test(Sequelize.version) ) {
+    if (/^[45]/.test(Sequelize.version)) {
       wrapped.push(
-        connection.Model.findById
+        connection.constructor.Model.findById,
+        connection.constructor.Model.findByPk
       );
     } else {
       wrapped.push(
-        connection.Model.prototype.findByPrimary,
-        connection.Model.prototype.findById,
+        connection.constructor.Model.prototype.findByPrimary,
+        connection.constructor.Model.prototype.findById,
       );
     }
 
-    wrapped.forEach(i => i.__unwrap && i.__unwrap());
+    wrapped.forEach(i => i && i.__unwrap && i.__unwrap());
 
     this.sandbox.restore();
     connection.modelManager.forEachModel(connection.modelManager.removeModel.bind(connection.modelManager));
@@ -61,9 +63,15 @@ describe('shimming', function () {
     });
 
     it('shims all models', function () {
-      expect(this.User.findById, 'to be shimmed');
-      expect(this.Task.findById, 'to be shimmed');
-      expect(this.Action.findById, 'to be shimmed');
+      if (/^[45]/.test(Sequelize.version)) {
+        expect(this.User.findByPk, 'to be shimmed');
+        expect(this.Task.findByPk, 'to be shimmed');
+        expect(this.Action.findByPk, 'to be shimmed');
+      } else {
+        expect(this.User.findById, 'to be shimmed');
+        expect(this.Task.findById, 'to be shimmed');
+        expect(this.Action.findById, 'to be shimmed');
+      }
     });
 
     it('shims all associations', function () {
@@ -93,6 +101,7 @@ describe('shimming', function () {
       if ( /^[45]/.test(Sequelize.version) ) {
         wrapped.push(
           this.User.findById,
+          this.User.findByPk
         );
       } else {
         wrapped.push(
@@ -101,12 +110,17 @@ describe('shimming', function () {
         );
       }
 
-      wrapped.forEach(i => i.__unwrap());
+      wrapped.forEach(i => i && i.__unwrap());
     });
 
     it('shims only targeted model', function () {
-      expect(this.User.findById, 'to be shimmed');
-      expect(this.Task.findById, 'not to be shimmed');
+      if (/^[45]/.test(Sequelize.version)) {
+        expect(this.User.findByPk, 'to be shimmed');
+        expect(this.Task.findByPk, 'not to be shimmed');
+      } else {
+        expect(this.User.findById, 'to be shimmed');
+        expect(this.Task.findById, 'not to be shimmed');
+      }
     });
 
     it('shims only targeted models associations', function () {
@@ -126,8 +140,13 @@ describe('shimming', function () {
     });
 
     it('does not shim models', function () {
-      expect(this.User.findById, 'not to be shimmed');
-      expect(this.Task.findById, 'not to be shimmed');
+      if (/^[45]/.test(Sequelize.version)) {
+        expect(this.User.findByPk, 'not to be shimmed');
+        expect(this.Task.findByPk, 'not to be shimmed');
+      } else {
+        expect(this.User.findById, 'not to be shimmed');
+        expect(this.Task.findById, 'not to be shimmed');
+      }
     });
 
     it('does not shim other associations', function () {
@@ -158,4 +177,3 @@ describe('shimming', function () {
     });
   });
 });
-

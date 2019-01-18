@@ -4,6 +4,7 @@ import sinon from 'sinon';
 import DataLoader from 'dataloader';
 import dataloaderSequelize, {createContext, EXPECTED_OPTIONS_KEY} from '../../src';
 import expect from 'unexpected';
+import {method} from '../../src/helper';
 
 async function createData() {
   [this.project1, this.project2, this.project3, this.project4] = await this.Project.bulkCreate([
@@ -400,8 +401,8 @@ describe('hasMany', function () {
 
     it('should skip batching if include is set', async function() {
       this.sandbox.spy(DataLoader.prototype, 'load');
-      let project1 = await this.Project.findById(this.project1.id, { include: [ this.Project.associations.members ]});
-      let project2 = await this.Project.findById(this.project2.id, { include: [ this.Project.associations.members ]});
+      let project1 = await this.Project[method(this.Project, 'findByPk')](this.project1.id, { include: [ this.Project.associations.members ]});
+      let project2 = await this.Project[method(this.Project, 'findByPk')](this.project2.id, { include: [ this.Project.associations.members ]});
 
       expect(project1.members, 'not to be undefined');
       expect(project2.members, 'not to be undefined');
@@ -473,7 +474,7 @@ describe('hasMany', function () {
     });
 
     it('correctly finds twice with separated query', async function() {
-      const userFirstFetch = await this.UserDeep.findById(this.user1.userId, {
+      const userFirstFetch = await this.UserDeep[method(this.UserDeep, 'findByPk')](this.user1.userId, {
         include: [{ model: this.RoleDeep, as: 'role' }]
       });
 
@@ -482,7 +483,7 @@ describe('hasMany', function () {
       expect(userFirstFetch.role, 'not to be null');
       expect(userFirstFetch.role.title, 'to be', 'admin');
 
-      const userSecondFetch = await this.UserDeep.findById(this.user1.userId, {
+      const userSecondFetch = await this.UserDeep[method(this.UserDeep, 'findByPk')](this.user1.userId, {
         include: [{
           model: this.RoleDeep,
           as: 'role',

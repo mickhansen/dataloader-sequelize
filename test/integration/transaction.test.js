@@ -5,6 +5,7 @@ import dataloaderSequelize from '../../src';
 import expect from 'unexpected';
 import Promise from 'bluebird';
 import cls from 'continuation-local-storage';
+import {method} from '../../src/helper';
 
 describe('Transactions', function () {
   beforeEach(async function () {
@@ -19,7 +20,7 @@ describe('Transactions', function () {
       this.sandbox = sinon.sandbox.create();
 
       this.User = connection.define('user');
-    
+
       dataloaderSequelize(this.User);
 
       await connection.sync({
@@ -36,9 +37,12 @@ describe('Transactions', function () {
 
     it('does not batch during managed transactions', async function () {
       let user1, user2;
+      console.log(method(this.User, 'findByPk'));
       await connection.transaction(async (t) => {
-        [user1, user2] = await Promise.all([this.User.findById(this.users[1].get('id'), {transaction: t}),
-          this.User.findById(this.users[0].get('id'), {transaction: t})]);
+        [user1, user2] = await Promise.all([
+          this.User[method(this.User, 'findByPk')](this.users[1].get('id'), {transaction: t}),
+          this.User[method(this.User, 'findByPk')](this.users[0].get('id'), {transaction: t})
+        ]);
       });
       expect(user1, 'to equal', this.users[1]);
       expect(user2, 'to equal', this.users[0]);
@@ -60,9 +64,9 @@ describe('Transactions', function () {
         Sequelize.cls = this.namespace;
       }
       this.sandbox = sinon.sandbox.create();
-      
+
       this.User = connection.define('user');
-    
+
       dataloaderSequelize(this.User);
 
       await connection.sync({
@@ -88,8 +92,10 @@ describe('Transactions', function () {
     it('does not batch during CLS transactions', async function () {
       let user1, user2;
       await connection.transaction(async (t) => {
-        [user1, user2] = await Promise.all([this.User.findById(this.users[1].get('id')),
-          this.User.findById(this.users[0].get('id'))]);
+        [user1, user2] = await Promise.all([
+          this.User[method(this.User, 'findByPk')](this.users[1].get('id')),
+          this.User[method(this.User, 'findByPk')](this.users[0].get('id'))
+        ]);
       });
       expect(user1, 'to equal', this.users[1]);
       expect(user2, 'to equal', this.users[0]);
