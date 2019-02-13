@@ -219,7 +219,7 @@ function shimModel(target) {
       } else {
         loader = cachedLoaderForModel(this, this.primaryKeyAttribute, this.primaryKeyField, options);
       }
-      return loader.load(id).then(rejectOnEmpty.bind(null, options));
+      return Promise.resolve(loader.load(id)).then(rejectOnEmpty.bind(null, options));
     };
   });
 }
@@ -245,7 +245,7 @@ function shimBelongsTo(target) {
         } else {
           loader = cachedLoaderForModel(this.target, this.targetKey, this.targetKeyField, options);
         }
-        return loader.load(foreignKeyValue);
+        return Promise.resolve(loader.load(foreignKeyValue));
       }).then(rejectOnEmpty.bind(null, options));
     };
   });
@@ -266,7 +266,7 @@ function shimHasOne(target) {
       } else {
         loader = cachedLoaderForModel(this.target, this.foreignKey, this.identifierField, options);
       }
-      return loader.load(instance.get(this.sourceKey)).then(rejectOnEmpty.bind(null, options));
+      return Promise.resolve(loader.load(instance.get(this.sourceKey)).then(rejectOnEmpty.bind(null, options)));
     };
   });
 }
@@ -340,7 +340,7 @@ function shimHasMany(target) {
           return Promise.resolve(null);
         }
 
-        return loader.load(sourceKeyValue).then(result => {
+        return Promise.resolve(loader.load(sourceKeyValue)).then(result => {
           if (isCount && !result) {
             result = { count: 0 };
           }
@@ -416,7 +416,7 @@ function shimBelongsToMany(target) {
       if (Array.isArray(instances)) {
         return Promise.map(instances, instance => loader.load(instance.get(this.source.primaryKeyAttribute)));
       } else {
-        return loader.load(instances.get(this.source.primaryKeyAttribute)).then(result => {
+        return Promise.resolve(loader.load(instances.get(this.source.primaryKeyAttribute))).then(result => {
           if (isCount && !result) {
             result = { count: 0 };
           }
