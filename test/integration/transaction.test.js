@@ -1,13 +1,14 @@
-import {connection, randint} from '../helper';
+import {createConnection, randint} from '../helper';
 import Sequelize from 'sequelize';
 import sinon from 'sinon';
-import dataloaderSequelize from '../../src';
+import {createContext, EXPECTED_OPTIONS_KEY} from '../../src';
 import expect from 'unexpected';
 import Promise from 'bluebird';
 import cls from 'continuation-local-storage';
 import {method} from '../../src/helper';
 
 describe('Transactions', function () {
+  beforeEach(createConnection);
   beforeEach(async function () {
     this.sandbox = sinon.sandbox.create();
   });
@@ -19,11 +20,9 @@ describe('Transactions', function () {
     beforeEach(async function () {
       this.sandbox = sinon.sandbox.create();
 
-      this.User = connection.define('user');
+      this.User = this.connection.define('user');
 
-      dataloaderSequelize(this.User);
-
-      await connection.sync({
+      await this.connection.sync({
         force: true
       });
 
@@ -33,15 +32,17 @@ describe('Transactions', function () {
       ], { returning: true });
 
       this.sandbox.spy(this.User, 'findAll');
+
+      this.context = createContext(this.connection);
     });
 
     it('does not batch during managed transactions', async function () {
       let user1, user2;
       console.log(method(this.User, 'findByPk'));
-      await connection.transaction(async (t) => {
+      await this.connection.transaction(async (t) => {
         [user1, user2] = await Promise.all([
-          this.User[method(this.User, 'findByPk')](this.users[1].get('id'), {transaction: t}),
-          this.User[method(this.User, 'findByPk')](this.users[0].get('id'), {transaction: t})
+          this.User[method(this.User, 'findByPk')](this.users[1].get('id'), {transaction: t, [EXPECTED_OPTIONS_KEY]: this.context}),
+          this.User[method(this.User, 'findByPk')](this.users[0].get('id'), {transaction: t, [EXPECTED_OPTIONS_KEY]: this.context})
         ]);
       });
       expect(user1, 'to equal', this.users[1]);
@@ -65,11 +66,11 @@ describe('Transactions', function () {
       }
       this.sandbox = sinon.sandbox.create();
 
-      this.User = connection.define('user');
+      this.User = this.connection.define('user');
 
-      dataloaderSequelize(this.User);
+      this.context = createContext(this.connection);
 
-      await connection.sync({
+      await this.connection.sync({
         force: true
       });
 
@@ -91,10 +92,10 @@ describe('Transactions', function () {
 
     it('does not batch during CLS transactions', async function () {
       let user1, user2;
-      await connection.transaction(async (t) => {
+      await this.connection.transaction(async (t) => {
         [user1, user2] = await Promise.all([
-          this.User[method(this.User, 'findByPk')](this.users[1].get('id')),
-          this.User[method(this.User, 'findByPk')](this.users[0].get('id'))
+          this.User[method(this.User, 'findByPk')](this.users[1].get('id'), {[EXPECTED_OPTIONS_KEY]: this.context}),
+          this.User[method(this.User, 'findByPk')](this.users[0].get('id'), {[EXPECTED_OPTIONS_KEY]: this.context})
         ]);
       });
       expect(user1, 'to equal', this.users[1]);

@@ -1,6 +1,6 @@
 import {createConnection, randint} from '../helper';
 import sinon from 'sinon';
-import dataloaderSequelize, {createContext, EXPECTED_OPTIONS_KEY} from '../../src';
+import {createContext, EXPECTED_OPTIONS_KEY} from '../../src';
 import expect from 'unexpected';
 import Sequelize from 'sequelize';
 
@@ -99,8 +99,6 @@ describe('belongsToMany', function () {
           await this.connection.sync({ force: true });
           await createData.call(this);
 
-          dataloaderSequelize(this.Project);
-
           this.context = createContext(this.connection);
         });
 
@@ -112,32 +110,6 @@ describe('belongsToMany', function () {
 
         afterEach(function () {
           this.sandbox.restore();
-        });
-
-        it('batches to a single findAll call when getting', async function () {
-          let members1 = this.project1.getMembers()
-            , members2 = this.project2.getMembers();
-
-          await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-            this.users[0],
-            this.users[1],
-            this.users[2],
-            this.users[3],
-          ]);
-          await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-            this.users[3],
-            this.users[4],
-            this.users[5],
-            this.users[6]
-          ]);
-
-          expect(this.User.findAll, 'was called once');
-          expect(this.User.findAll, 'to have a call satisfying', [{
-            include: [{
-              association: this.Project.Users.manyFromTarget,
-              where: { project_id: [ this.project1.get('id'), this.project2.get('id') ] }
-            }]
-          }]);
         });
 
         it('batches/caches to a single findAll call when getting (createContext)', async function () {
@@ -183,9 +155,9 @@ describe('belongsToMany', function () {
         });
 
         it('supports rejectOnEmpty', async function () {
-          let members1 = this.project1.getMembers({ rejectOnEmpty: true })
-            , members2 = this.project4.getMembers({ rejectOnEmpty: true })
-            , members3 = this.project4.getMembers();
+          let members1 = this.project1.getMembers({ [EXPECTED_OPTIONS_KEY]: this.context, rejectOnEmpty: true })
+            , members2 = this.project4.getMembers({ [EXPECTED_OPTIONS_KEY]: this.context, rejectOnEmpty: true })
+            , members3 = this.project4.getMembers({ [EXPECTED_OPTIONS_KEY]: this.context });
 
           await expect(members1, 'to be fulfilled with', Array);
           await expect(members2, 'to be rejected');
@@ -195,9 +167,9 @@ describe('belongsToMany', function () {
         it('batches to a single findAll call when counting', async function () {
           let project4 = await this.Project.create();
 
-          let members1 = this.project1.countMembers()
-            , members2 = this.project2.countMembers()
-            , members3 = project4.countMembers();
+          let members1 = this.project1.countMembers({[EXPECTED_OPTIONS_KEY]: this.context})
+            , members2 = this.project2.countMembers({[EXPECTED_OPTIONS_KEY]: this.context})
+            , members3 = project4.countMembers({[EXPECTED_OPTIONS_KEY]: this.context});
 
           await expect(members1, 'to be fulfilled with', 4);
           await expect(members2, 'to be fulfilled with', 4);
@@ -222,9 +194,9 @@ describe('belongsToMany', function () {
         });
 
         it('batches to multiple findAll call when different limits are applied', async function () {
-          let members1 = this.project1.getMembers({ limit: 4 })
-            , members2 = this.project2.getMembers({ limit: 2 })
-            , members3 = this.project3.getMembers({ limit: 2 });
+          let members1 = this.project1.getMembers({ limit: 4, [EXPECTED_OPTIONS_KEY]: this.context })
+            , members2 = this.project2.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context })
+            , members3 = this.project3.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context });
 
           await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
             this.users[0],
@@ -245,8 +217,8 @@ describe('belongsToMany', function () {
         });
 
         it('batches to multiple findAll call with where', async function () {
-          let members1 = this.project1.getMembers({ where: { awesome: true } })
-            , members2 = this.project2.getMembers({ where: { awesome: false } });
+          let members1 = this.project1.getMembers({ where: { awesome: true }, [EXPECTED_OPTIONS_KEY]: this.context })
+            , members2 = this.project2.getMembers({ where: { awesome: false }, [EXPECTED_OPTIONS_KEY]: this.context });
 
           await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
             this.users[1],
@@ -271,11 +243,11 @@ describe('belongsToMany', function () {
         });
 
         it('batches to multiple findAll call with where + limit', async function () {
-          let members1 = this.project1.getMembers({ where: { awesome: true }, limit: 1 })
-            , members2 = this.project2.getMembers({ where: { awesome: true }, limit: 1 })
-            , members3 = this.project2.getMembers({ where: { awesome: false }, limit: 2 })
-            , members4 = this.project3.getMembers({ where: { awesome: true }, limit: 2 })
-            , members5 = this.project3.getMembers({ where: { awesome: true }, limit: 2 });
+          let members1 = this.project1.getMembers({ where: { awesome: true }, limit: 1, [EXPECTED_OPTIONS_KEY]: this.context })
+            , members2 = this.project2.getMembers({ where: { awesome: true }, limit: 1, [EXPECTED_OPTIONS_KEY]: this.context })
+            , members3 = this.project2.getMembers({ where: { awesome: false }, limit: 2, [EXPECTED_OPTIONS_KEY]: this.context })
+            , members4 = this.project3.getMembers({ where: { awesome: true }, limit: 2, [EXPECTED_OPTIONS_KEY]: this.context })
+            , members5 = this.project3.getMembers({ where: { awesome: true }, limit: 2, [EXPECTED_OPTIONS_KEY]: this.context });
 
           await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
             this.users[1]
@@ -366,11 +338,10 @@ describe('belongsToMany', function () {
 
         await this.connection.sync({ force: true });
         await createData.call(this);
-
-        dataloaderSequelize(this.Project);
       });
 
       beforeEach(function () {
+        this.context = createContext(this.connection);
         this.sandbox.spy(this.User, 'findAll');
       });
 
@@ -379,9 +350,9 @@ describe('belongsToMany', function () {
       });
 
       it('batches to multiple findAll call when different limits are applied', async function () {
-        let members1 = this.project1.getAwesomeMembers({ limit: 10 })
-          , members2 = this.project2.getAwesomeMembers({ limit: 10 })
-          , members3 = this.project3.getAwesomeMembers({ limit: 2 });
+        let members1 = this.project1.getAwesomeMembers({ limit: 10, [EXPECTED_OPTIONS_KEY]: this.context })
+          , members2 = this.project2.getAwesomeMembers({ limit: 10, [EXPECTED_OPTIONS_KEY]: this.context })
+          , members3 = this.project3.getAwesomeMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context });
 
         await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
           this.users[1],
@@ -400,9 +371,9 @@ describe('belongsToMany', function () {
       });
 
       it('batches to a single findAll call', async function () {
-        let members1 = this.project1.getAwesomeMembers()
-          , members2 = this.project2.getAwesomeMembers()
-          , members3 = this.project3.getAwesomeMembers();
+        let members1 = this.project1.getAwesomeMembers({[EXPECTED_OPTIONS_KEY]: this.context})
+          , members2 = this.project2.getAwesomeMembers({[EXPECTED_OPTIONS_KEY]: this.context})
+          , members3 = this.project3.getAwesomeMembers({[EXPECTED_OPTIONS_KEY]: this.context});
 
         await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
           this.users[1],
@@ -422,9 +393,9 @@ describe('belongsToMany', function () {
       });
 
       it('works for raw queries', async function () {
-        let members1 = this.project1.getAwesomeMembers()
-          , members2 = this.project2.getAwesomeMembers({ raw: true })
-          , members3 = this.project3.getAwesomeMembers({ raw: true });
+        let members1 = this.project1.getAwesomeMembers({ [EXPECTED_OPTIONS_KEY]: this.context })
+          , members2 = this.project2.getAwesomeMembers({ raw: true, [EXPECTED_OPTIONS_KEY]: this.context })
+          , members3 = this.project3.getAwesomeMembers({ raw: true, [EXPECTED_OPTIONS_KEY]: this.context });
 
         await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
           this.users[1],
@@ -444,8 +415,8 @@ describe('belongsToMany', function () {
       });
 
       it('batches to multiple findAll call when different scopes are applied', async function () {
-        let members1 = this.project1.getAwesomeMembers({ limit: 10 })
-          , members2 = this.project1.getMembers({ limit: 10 });
+        let members1 = this.project1.getAwesomeMembers({ limit: 10, [EXPECTED_OPTIONS_KEY]: this.context })
+          , members2 = this.project1.getMembers({ limit: 10, [EXPECTED_OPTIONS_KEY]: this.context });
 
         await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
           this.users[1],
@@ -512,11 +483,10 @@ describe('belongsToMany', function () {
             ]
           }
         });
-
-        dataloaderSequelize(this.Project);
       });
 
       beforeEach(function () {
+        this.context = createContext(this.connection);
         this.sandbox.spy(this.User, 'findAll');
       });
 
@@ -525,9 +495,9 @@ describe('belongsToMany', function () {
       });
 
       it('batches to multiple findAll call when different limits are applied', async function () {
-        let members1 = this.project1.getSecretMembers({ limit: 10 })
-          , members2 = this.project2.getSecretMembers({ limit: 10 })
-          , members3 = this.project3.getSecretMembers({ limit: 2 });
+        let members1 = this.project1.getSecretMembers({ limit: 10, [EXPECTED_OPTIONS_KEY]: this.context })
+          , members2 = this.project2.getSecretMembers({ limit: 10, [EXPECTED_OPTIONS_KEY]: this.context })
+          , members3 = this.project3.getSecretMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context });
 
         await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
           this.users[0],
@@ -545,9 +515,9 @@ describe('belongsToMany', function () {
       });
 
       it('batches to one findAll call without limits', async function () {
-        let members1 = this.project1.getSecretMembers()
-          , members2 = this.project2.getSecretMembers()
-          , members3 = this.project3.getSecretMembers();
+        let members1 = this.project1.getSecretMembers({[EXPECTED_OPTIONS_KEY]: this.context})
+          , members2 = this.project2.getSecretMembers({[EXPECTED_OPTIONS_KEY]: this.context})
+          , members3 = this.project3.getSecretMembers({[EXPECTED_OPTIONS_KEY]: this.context});
 
         await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
           this.users[0],
@@ -566,8 +536,8 @@ describe('belongsToMany', function () {
       });
 
       it('batches to multiple findAll call when different scopes are applied', async function () {
-        let members1 = this.project1.getSecretMembers({ limit: 10 })
-          , members2 = this.project1.getMembers({ limit: 10 });
+        let members1 = this.project1.getSecretMembers({ limit: 10, [EXPECTED_OPTIONS_KEY]: this.context })
+          , members2 = this.project1.getMembers({ limit: 10, [EXPECTED_OPTIONS_KEY]: this.context });
 
         await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
           this.users[0],

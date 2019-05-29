@@ -105,23 +105,6 @@ function rejectOnEmpty(options, result) {
   return result;
 }
 
-function cachedLoaderForBTM(model, joinTableName, foreignKey, foreignKeyField, options = {}) {
-  assert(options.include === undefined, 'options.include is not supported by model loader');
-  assert(options.association !== undefined, 'options.association should be set for BTM loader');
-
-  let attributes = [joinTableName, foreignKey]
-    , cacheKey = getCacheKey(model, attributes, options);
-
-  if (!GLOBAL_CACHE.has(cacheKey)) {
-    GLOBAL_CACHE.set(cacheKey, loaderForBTM(model, joinTableName, foreignKey, foreignKeyField, {
-      ...options,
-      cache: false
-    }));
-  }
-
-  return GLOBAL_CACHE.get(cacheKey);
-}
-
 function loaderForBTM(model, joinTableName, foreignKey, foreignKeyField, options = {}) {
   assert(options.include === undefined, 'options.include is not supported by model loader');
   assert(options.association !== undefined, 'options.association should be set for BTM loader');
@@ -156,21 +139,6 @@ function loaderForBTM(model, joinTableName, foreignKey, foreignKeyField, options
   }, {
     cache: options.cache
   });
-}
-
-function cachedLoaderForModel(model, attribute, attributeField, options = {}) {
-  assert(options.include === undefined, 'options.include is not supported by model loader');
-
-  let cacheKey = getCacheKey(model, attribute, options);
-
-  if (!GLOBAL_CACHE.has(cacheKey)) {
-    GLOBAL_CACHE.set(cacheKey, loaderForModel(model, attribute, attributeField, {
-      ...options,
-      cache: false
-    }));
-  }
-
-  return GLOBAL_CACHE.get(cacheKey);
 }
 
 function loaderForModel(model, attribute, attributeField, options = {}) {
@@ -209,16 +177,11 @@ function shimModel(target) {
       if ([null, undefined].indexOf(id) !== -1) {
         return Promise.resolve(null);
       }
-      if (options.transaction || options.include || activeClsTransaction()) {
+      if (options.transaction || options.include || activeClsTransaction() || !options[EXPECTED_OPTIONS_KEY]) {
         return original.apply(this, arguments);
       }
 
-      let loader = null;
-      if (options[EXPECTED_OPTIONS_KEY]) {
-        loader = options[EXPECTED_OPTIONS_KEY].loaders[this.name].byPrimaryKey;
-      } else {
-        loader = cachedLoaderForModel(this, this.primaryKeyAttribute, this.primaryKeyField, options);
-      }
+      const loader = options[EXPECTED_OPTIONS_KEY].loaders[this.name].byPrimaryKey;
       return Promise.resolve(loader.load(id)).then(rejectOnEmpty.bind(null, options));
     };
   });
@@ -229,7 +192,7 @@ function shimBelongsTo(target) {
 
   shimmer.wrap(target, 'get', original => {
     return function batchedGetBelongsTo(instance, options = {}) {
-      if (Array.isArray(instance) || options.include || options.transaction || activeClsTransaction()) {
+      if (Array.isArray(instance) || options.include || options.transaction || activeClsTransaction() || !options[EXPECTED_OPTIONS_KEY] || options.where) {
         return original.apply(this, arguments);
       }
 
@@ -239,12 +202,7 @@ function shimBelongsTo(target) {
           return Promise.resolve(null);
         }
 
-        let loader = null;
-        if (options[EXPECTED_OPTIONS_KEY] && !options.where) {
-          loader = options[EXPECTED_OPTIONS_KEY].loaders[this.target.name].bySingleAttribute[this.targetKey];
-        } else {
-          loader = cachedLoaderForModel(this.target, this.targetKey, this.targetKeyField, options);
-        }
+        const loader = options[EXPECTED_OPTIONS_KEY].loaders[this.target.name].bySingleAttribute[this.targetKey];
         return Promise.resolve(loader.load(foreignKeyValue));
       }).then(rejectOnEmpty.bind(null, options));
     };
@@ -256,16 +214,11 @@ function shimHasOne(target) {
 
   shimmer.wrap(target, 'get', original => {
     return function batchedGetHasOne(instance, options = {}) {
-      if (Array.isArray(instance) || options.include || options.transaction || activeClsTransaction()) {
+      if (Array.isArray(instance) || options.include || options.transaction || activeClsTransaction() || !options[EXPECTED_OPTIONS_KEY]) {
         return original.apply(this, arguments);
       }
 
-      let loader = null;
-      if (options[EXPECTED_OPTIONS_KEY] && !options.where) {
-        loader = options[EXPECTED_OPTIONS_KEY].loaders[this.target.name].bySingleAttribute[this.foreignKey];
-      } else {
-        loader = cachedLoaderForModel(this.target, this.foreignKey, this.identifierField, options);
-      }
+      const loader = options[EXPECTED_OPTIONS_KEY].loaders[this.target.name].bySingleAttribute[this.foreignKey];
       return Promise.resolve(loader.load(instance.get(this.sourceKey)).then(rejectOnEmpty.bind(null, options)));
     };
   });
@@ -277,7 +230,7 @@ function shimHasMany(target) {
   shimmer.wrap(target, 'get', original => {
     return function bathedGetHasMany(instances, options = {}) {
       let isCount = false;
-      if (options.include || options.transaction || options.separate || activeClsTransaction()) {
+      if (options.include || options.transaction || options.separate || activeClsTransaction() || !options[EXPECTED_OPTIONS_KEY]) {
         return original.apply(this, arguments);
       }
 
@@ -307,18 +260,14 @@ function shimHasMany(target) {
           ...options
         };
 
-      if (options[EXPECTED_OPTIONS_KEY]) {
-        const cacheKey = getCacheKey(this.target, this.foreignKey, loaderOptions);
-        loader = options[EXPECTED_OPTIONS_KEY].loaders.autogenerated.get(cacheKey);
-        if (!loader) {
-          loader = loaderForModel(this.target, this.foreignKey, this.foreignKeyField, {
-            ...loaderOptions,
-            cache: true
-          });
-          options[EXPECTED_OPTIONS_KEY].loaders.autogenerated.set(cacheKey, loader);
-        }
-      } else {
-        loader = cachedLoaderForModel(this.target, this.foreignKey, this.foreignKeyField, loaderOptions);
+      const cacheKey = getCacheKey(this.target, this.foreignKey, loaderOptions);
+      loader = options[EXPECTED_OPTIONS_KEY].loaders.autogenerated.get(cacheKey);
+      if (!loader) {
+        loader = loaderForModel(this.target, this.foreignKey, this.foreignKeyField, {
+          ...loaderOptions,
+          cache: true
+        });
+        options[EXPECTED_OPTIONS_KEY].loaders.autogenerated.set(cacheKey, loader);
       }
 
       let key = this.sourceKey || this.source.primaryKeyAttribute;
@@ -359,7 +308,7 @@ function shimBelongsToMany(target) {
       let isCount = false;
       assert(this.paired, '.paired missing on belongsToMany association. You need to set up both sides of the association');
 
-      if (options.include || options.transaction || activeClsTransaction()) {
+      if (options.include || options.transaction || activeClsTransaction() || !options[EXPECTED_OPTIONS_KEY]) {
         return original.apply(this, arguments);
       }
 
@@ -399,18 +348,14 @@ function shimBelongsToMany(target) {
           ...options
         };
 
-      if (options[EXPECTED_OPTIONS_KEY]) {
-        const cacheKey = getCacheKey(this.target, [this.paired.manyFromSource.as, this.foreignKey], loaderOptions);
-        loader = options[EXPECTED_OPTIONS_KEY].loaders.autogenerated.get(cacheKey);
-        if (!loader) {
-          loader = loaderForBTM(this.target, this.paired.manyFromSource.as, this.foreignKey, this.identifierField, {
-            ...loaderOptions,
-            cache: true
-          });
-          options[EXPECTED_OPTIONS_KEY].loaders.autogenerated.set(cacheKey, loader);
-        }
-      } else {
-        loader = cachedLoaderForBTM(this.target, this.paired.manyFromSource.as, this.foreignKey, this.identifierField, loaderOptions);
+      const cacheKey = getCacheKey(this.target, [this.paired.manyFromSource.as, this.foreignKey], loaderOptions);
+      loader = options[EXPECTED_OPTIONS_KEY].loaders.autogenerated.get(cacheKey);
+      if (!loader) {
+        loader = loaderForBTM(this.target, this.paired.manyFromSource.as, this.foreignKey, this.identifierField, {
+          ...loaderOptions,
+          cache: true
+        });
+        options[EXPECTED_OPTIONS_KEY].loaders.autogenerated.set(cacheKey, loader);
       }
 
       if (Array.isArray(instances)) {
@@ -427,20 +372,6 @@ function shimBelongsToMany(target) {
   });
 }
 
-function shimAssociation(association) {
-  switch (association.associationType) {
-    case 'BelongsTo': return shimBelongsTo(association);
-    case 'HasOne': return shimHasOne(association);
-    case 'HasMany': return shimHasMany(association);
-    case 'BelongsToMany': return shimBelongsToMany(association);
-  }
-}
-
-let GLOBAL_CACHE;
-export function resetCache() {
-  if (GLOBAL_CACHE) GLOBAL_CACHE.reset();
-}
-
 function activeClsTransaction() {
   if (/^[45]/.test(Sequelize.version)) {
     if (Sequelize._cls && Sequelize._cls.get('transaction')) {
@@ -450,31 +381,6 @@ function activeClsTransaction() {
     return true;
   }
   return false;
-}
-
-export default function (target, options = {}) {
-  options = {
-    ...options,
-    max: 500
-  };
-
-  if (!GLOBAL_CACHE) {
-    GLOBAL_CACHE = LRU(options);
-  }
-
-  if (target.associationType) {
-    shimAssociation(target);
-  } else if (/(SequelizeModel|class extends Model)/.test(target.toString()) || Sequelize.Model.isPrototypeOf(target)) {
-    shimModel(target);
-    values(target.associations).forEach(shimAssociation);
-  } else {
-    // Assume target is the sequelize constructor
-    shimModel(/^[45]/.test(Sequelize.version) ? target.constructor.Model : target.constructor.Model.prototype);
-    shimBelongsTo(target.constructor.Association.BelongsTo.prototype);
-    shimHasOne(target.constructor.Association.HasOne.prototype);
-    shimHasMany(target.constructor.Association.HasMany.prototype);
-    shimBelongsToMany(target.constructor.Association.BelongsToMany.prototype);
-  }
 }
 
 export const EXPECTED_OPTIONS_KEY = 'dataloader_sequelize_context';
@@ -489,9 +395,6 @@ export function createContext(sequelize, options = {}) {
   shimBelongsToMany(sequelize.constructor.Association.BelongsToMany.prototype);
 
   loaders.autogenerated = LRU({max: options.max || 500});
-  if (!GLOBAL_CACHE) {
-    GLOBAL_CACHE = LRU(options);
-  }
 
   sequelize.modelManager.forEachModel(Model => {
     loaders[Model.name] = {

@@ -1,7 +1,7 @@
 import Sequelize from 'sequelize';
 import {createConnection, randint} from '../helper';
 import sinon from 'sinon';
-import dataloaderSequelize, {createContext, EXPECTED_OPTIONS_KEY} from '../../src';
+import {createContext, EXPECTED_OPTIONS_KEY} from '../../src';
 import Promise from 'bluebird';
 import expect from 'unexpected';
 
@@ -29,8 +29,6 @@ describe('belongsTo', function () {
         }
       });
 
-      dataloaderSequelize(this.Project);
-
       await this.connection.sync({
         force: true
       });
@@ -57,22 +55,7 @@ describe('belongsTo', function () {
       this.context = createContext(this.connection);
     });
 
-    it('batches to a single findAll call', async function () {
-      let user1 = this.project1.getOwner()
-        , user2 = this.project2.getOwner();
-
-      await expect(user1, 'to be fulfilled with', this.user1);
-      await expect(user2, 'to be fulfilled with', this.user2);
-
-      expect(this.User.findAll, 'was called once');
-      expect(this.User.findAll, 'to have a call satisfying', [{
-        where: {
-          id: [this.user1.get('id'), this.user2.get('id')]
-        }
-      }]);
-    });
-
-    it('batches and caches to a single findAll call (createContext)', async function () {
+    it('batches and caches to a single findAll call', async function () {
       let user1 = this.project1.getOwner({[EXPECTED_OPTIONS_KEY]: this.context})
         , user2 = this.project2.getOwner({[EXPECTED_OPTIONS_KEY]: this.context});
 
@@ -118,9 +101,9 @@ describe('belongsTo', function () {
     });
 
     it('supports rejectOnEmpty', async function () {
-      let user1 = this.project1.getOwner({ rejectOnEmpty: Error })
-        , user2 = this.project3.getOwner({ rejectOnEmpty: Error })
-        , user3 = this.project3.getOwner();
+      let user1 = this.project1.getOwner({ [EXPECTED_OPTIONS_KEY]: this.context, rejectOnEmpty: Error })
+        , user2 = this.project3.getOwner({ [EXPECTED_OPTIONS_KEY]: this.context, rejectOnEmpty: Error })
+        , user3 = this.project3.getOwner({ [EXPECTED_OPTIONS_KEY]: this.context });
 
       await expect(user1, 'to be fulfilled with', this.user1);
       await expect(user2, 'to be rejected with', Error);
@@ -170,25 +153,9 @@ describe('belongsTo', function () {
         this.project2.setOwner(this.user2)
       );
 
-      dataloaderSequelize(this.Project);
       this.sandbox.spy(this.User, 'findAll');
 
       this.context = createContext(this.connection);
-    });
-
-    it('batches to a single findAll call', async function () {
-      let user1 = this.project1.getOwner()
-        , user2 = this.project2.getOwner();
-
-      await expect(user1, 'to be fulfilled with', this.user1);
-      await expect(user2, 'to be fulfilled with', this.user2);
-
-      expect(this.User.findAll, 'was called once');
-      expect(this.User.findAll, 'to have a call satisfying', [{
-        where: {
-          some_id: [this.project1.get('ownerId'), this.project2.get('ownerId')]
-        }
-      }]);
     });
 
     it('batches and caches to a single findAll call (createContext)', async function () {

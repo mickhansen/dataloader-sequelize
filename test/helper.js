@@ -1,7 +1,4 @@
 import Sequelize from 'sequelize';
-import {resetCache} from '../src';
-
-beforeEach(resetCache);
 
 export const connection = new Sequelize(
   process.env.DB_DATABASE,
