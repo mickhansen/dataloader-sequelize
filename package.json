@@ -1,6 +1,6 @@
 {
   "name": "dataloader-sequelize",
-  "version": "1.7.10",
+  "version": "2.0.0",
   "description": "Batching and simplification of Sequelize with facebook/dataloader",
   "main": "lib/index.js",
   "options": {
