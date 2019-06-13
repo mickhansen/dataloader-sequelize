@@ -34,7 +34,7 @@
     "isparta": "^4.0.0",
     "mocha": "^3.0.0",
     "pg": "^6.1.0",
-    "sequelize": "^5.8.7",
+    "sequelize": "^5.8.9",
     "sinon": "^1.17.4",
     "sinon-as-promised": "^4.0.0",
     "unexpected": "^10.14.2",

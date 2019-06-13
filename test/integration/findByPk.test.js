@@ -1,7 +1,7 @@
 import Sequelize from 'sequelize';
 import {createConnection, randint} from '../helper';
 import sinon from 'sinon';
-import {createContext, EXPECTED_OPTIONS_KEY} from '../../src';
+import {createContext, removeContext, EXPECTED_OPTIONS_KEY} from '../../src';
 import expect from 'unexpected';
 import {method} from '../../src/helper';
 
@@ -67,6 +67,36 @@ describe('findByPk', function () {
       await expect(user1, 'to be fulfilled with', this.users[2]);
       await expect(user2, 'to be rejected');
       await expect(user3, 'to be fulfilled with', null);
+    });
+
+    it('works if model method is shimmed', async function () {
+      removeContext(this.connection);
+
+      const original = this.User[method(this.User, 'findByPk')];
+      this.User[method(this.User, 'findByPk')] = function(...args) {
+        return original.call(this, ...args);
+      };
+
+      this.context = createContext(this.connection);
+
+      let user1 = this.User[method(this.User, 'findByPk')](this.users[2].get('id'), {[EXPECTED_OPTIONS_KEY]: this.context})
+        , user2 = this.User[method(this.User, 'findByPk')](this.users[1].get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
+
+      await expect(user1, 'to be fulfilled with', this.users[2]);
+      await expect(user2, 'to be fulfilled with', this.users[1]);
+
+      user1 = this.User[method(this.User, 'findByPk')](this.users[2].get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
+      user2 = this.User[method(this.User, 'findByPk')](this.users[1].get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
+
+      await expect(user1, 'to be fulfilled with', this.users[2]);
+      await expect(user2, 'to be fulfilled with', this.users[1]);
+
+      expect(this.User.findAll, 'was called once');
+      expect(this.User.findAll, 'to have a call satisfying', [{
+        where: {
+          id: [this.users[2].get('id'), this.users[1].get('id')]
+        }
+      }]);
     });
   });
 
