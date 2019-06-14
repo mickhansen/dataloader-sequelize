@@ -116,12 +116,13 @@ function loaderForBTM(model, joinTableName, foreignKey, foreignKeyField, options
   return new DataLoader(keys => {
     let findOptions = Object.assign({}, options);
     delete findOptions.rejectOnEmpty;
-    if (findOptions.limit) {
-      const limit = findOptions.offset && findOptions.offset > 0 ? [findOptions.limit, findOptions.offset] : findOptions.limit;
+    const { limit, offset } = findOptions;
+    if (limit) {
       findOptions.groupedLimit = {
         through: options.through,
         on: association,
         limit,
+        offset,
         values: uniq(keys)
       };
     } else {
@@ -147,11 +148,11 @@ function loaderForModel(model, attribute, attributeField, options = {}) {
   return new DataLoader(keys => {
     const findOptions = Object.assign({}, options);
     delete findOptions.rejectOnEmpty;
-
-    if (findOptions.limit && keys.length > 1) {
-      const limit = findOptions.offset && findOptions.offset > 0 ? [findOptions.limit, findOptions.offset] : findOptions.limit;
+    const { limit, offset } = findOptions;
+    if (limit && keys.length > 1) {
       findOptions.groupedLimit = {
         limit,
+        offset,
         on: attributeField,
         values: uniq(keys)
       };
