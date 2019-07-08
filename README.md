@@ -7,7 +7,7 @@ Batching, caching and simplification of Sequelize with facebook/dataloader
 
 # How it works
 
-dataloader-sequelize is designed to provide per-request catching/batching for sequelize lookups, most likely in a graphql environment
+dataloader-sequelize is designed to provide per-request caching/batching for sequelize lookups, most likely in a graphql environment
 
 # API
 
