@@ -216,6 +216,16 @@ describe('belongsToMany', function () {
           expect(this.User.findAll, 'was called twice');
         });
 
+        it('find call with through model has all attributes', async function () {
+          const members = await this.project1.getMembers({ where: { awesome: true }, [EXPECTED_OPTIONS_KEY]: this.context });
+          const project_members = members[0].project_members;
+
+          expect(Object.keys(project_members[0].toJSON()).sort(), 'to satisfy', [
+            'projectId', 'userId', 'createdAt', 'updatedAt'
+          ].sort());
+          
+        });
+
         it('batches to multiple findAll call with where', async function () {
           let members1 = this.project1.getMembers({ where: { awesome: true }, [EXPECTED_OPTIONS_KEY]: this.context })
             , members2 = this.project2.getMembers({ where: { awesome: false }, [EXPECTED_OPTIONS_KEY]: this.context });

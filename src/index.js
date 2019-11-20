@@ -125,8 +125,11 @@ function loaderForBTM(model, joinTableName, foreignKey, foreignKeyField, options
         values: uniq(keys)
       };
     } else {
+
+      const attributes = options.through && options.through.attributes ? [...options.through.attributes, foreignKey] : undefined;
+
       findOptions.include = [{
-        attributes: [foreignKey],
+        attributes,
         association: association.manyFromSource,
         where: {
           [foreignKeyField]: keys,
