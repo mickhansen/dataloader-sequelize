@@ -126,7 +126,7 @@ function loaderForBTM(model, joinTableName, foreignKey, foreignKeyField, options
       };
     } else {
 
-      const attributes = options.through && options.through.attributes ? [...options.through.attributes] : [foreignKey];
+      const attributes = options.through && options.through.attributes ? [...options.through.attributes, foreignKey] : [foreignKey];
 
       findOptions.include = [{
         attributes,

@@ -217,7 +217,7 @@ describe('belongsToMany', function () {
         });
 
         it('find call with through model has all attributes', async function () {
-          
+
           await this.project2.getMembers({ through: {attributes: ['projectId', 'userId']}, [EXPECTED_OPTIONS_KEY]: this.context });
 
           expect(this.User.findAll, 'to have a call satisfying', [{
