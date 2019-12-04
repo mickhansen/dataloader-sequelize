@@ -216,6 +216,16 @@ describe('belongsToMany', function () {
           expect(this.User.findAll, 'was called twice');
         });
 
+        it('find call with through model has all attributes', async function () {
+
+          await this.project2.getMembers({ through: {attributes: ['projectId', 'userId']}, [EXPECTED_OPTIONS_KEY]: this.context });
+
+          expect(this.User.findAll, 'to have a call satisfying', [{
+            through: {attributes: ['projectId', 'userId']}
+          }]);
+          
+        });
+
         it('batches to multiple findAll call with where', async function () {
           let members1 = this.project1.getMembers({ where: { awesome: true }, [EXPECTED_OPTIONS_KEY]: this.context })
             , members2 = this.project2.getMembers({ where: { awesome: false }, [EXPECTED_OPTIONS_KEY]: this.context });
