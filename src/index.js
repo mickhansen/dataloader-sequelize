@@ -7,6 +7,8 @@ import LRU from 'lru-cache';
 import assert from 'assert';
 import {methods} from './helper';
 
+const versionTestRegEx = /^[456]/;
+
 function mapResult(attribute, keys, options, result) {
   // Convert an array of results to an object of attribute (primary / foreign / target key) -> array of matching rows
   if (Array.isArray(attribute) && options && options.multiple && !options.raw) {
@@ -385,7 +387,7 @@ function shimBelongsToMany(target) {
 }
 
 function activeClsTransaction() {
-  if (/^[45]/.test(Sequelize.version)) {
+  if (versionTestRegEx.test(Sequelize.version)) {
     if (Sequelize._cls && Sequelize._cls.get('transaction')) {
       return true;
     }
@@ -399,7 +401,7 @@ export const EXPECTED_OPTIONS_KEY = 'dataloader_sequelize_context';
 export function createContext(sequelize, options = {}) {
   const loaders = {};
 
-  shimModel(/^[45]/.test(sequelize.constructor.version) ? // v3 vs v4
+  shimModel(versionTestRegEx.test(sequelize.constructor.version) ? // v3 vs v4
     sequelize.constructor.Model : sequelize.constructor.Model.prototype);
   shimBelongsTo(sequelize.constructor.Association.BelongsTo.prototype);
   shimHasOne(sequelize.constructor.Association.HasOne.prototype);
@@ -448,7 +450,7 @@ export function createContext(sequelize, options = {}) {
 }
 
 export function removeContext(sequelize) {
-  const Model = /^[45]/.test(sequelize.constructor.version) ? // v3 vs v4
+  const Model = versionTestRegEx.test(sequelize.constructor.version) ? // v3 vs v4
     sequelize.constructor.Model : sequelize.constructor.Model.prototype;
 
   shimmer.massUnwrap(Model, methods(Sequelize.version).findByPk);
