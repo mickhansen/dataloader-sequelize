@@ -10,7 +10,7 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: '12.x'
-    - run: npm ci
-    - run: npm test:v3
-    - run: npm test:v4
-    - run: npm test:latest
+    - run: yarn install --pure-lockfile  
+    - run: yarn run test:v3
+    - run: yarn run test:v4
+    - run: yarn run test:latest
