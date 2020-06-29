@@ -1,7 +1,7 @@
 on: [push]
 
 jobs:
-  docker:
+  test:
     runs-on: ubuntu-latest
     name: CI
     steps:
