@@ -94,10 +94,11 @@ describe('belongsTo', function () {
     });
 
     it('works with id of 0', async function () {
-      let user0 = this.project0.getOwner();
+      let user0 = await this.project0.getOwner();
 
-      // await expect(user0, 'to be fulfilled with', this.user0);
-      await expect(user0.get('id'), 'to be fulfilled with', 0);
+
+      //await expect(user0, 'to be fulfilled with', this.user0);
+      expect(user0.get('id'), 'to be', 0);
     });
 
     it('supports rejectOnEmpty', async function () {

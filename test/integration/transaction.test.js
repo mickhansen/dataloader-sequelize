@@ -5,6 +5,7 @@ import {createContext, EXPECTED_OPTIONS_KEY} from '../../src';
 import expect from 'unexpected';
 import Promise from 'bluebird';
 import cls from 'continuation-local-storage';
+import clsh from 'cls-hooked';
 import {method} from '../../src/helper';
 
 describe('Transactions', function () {
@@ -58,8 +59,9 @@ describe('Transactions', function () {
 
   describe('CLS', function () {
     beforeEach(async function () {
-      this.namespace = cls.createNamespace('sequelize');
-      if (/^[45]/.test(Sequelize.version)) {
+
+      this.namespace = (/^[6]/.test(Sequelize.version) ? clsh : cls).createNamespace('sequelize');
+      if (/^[456]/.test(Sequelize.version)) {
         Sequelize.useCLS(this.namespace);
       } else {
         Sequelize.cls = this.namespace;
@@ -83,7 +85,7 @@ describe('Transactions', function () {
     })
 
     after(function () {
-      if (/^[45]/.test(Sequelize.version)) {
+      if (/^[456]/.test(Sequelize.version)) {
         delete Sequelize._cls;
       } else {
         delete Sequelize.cls;
