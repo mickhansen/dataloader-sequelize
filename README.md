@@ -39,3 +39,14 @@ context.prime(results);
 
 await User.findById(2, {[EXPECTED_OPTIONS_KEY]: context}); // Cached, if was in results
 ```
+
+## Cache cleaning
+
+In some cases, you might want to explicitly clear the dataloader cache. 
+
+```js
+import {createContext, EXPECTED_OPTIONS_KEY} from 'dataloader-sequelize';
+const context = createContext(sequelize);
+
+context.loaders.clearCache();
+```
