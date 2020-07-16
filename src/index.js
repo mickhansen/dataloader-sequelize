@@ -1,4 +1,3 @@
-/* eslint-disable */
 import Sequelize from 'sequelize';
 import shimmer from 'shimmer';
 import DataLoader from 'dataloader';
