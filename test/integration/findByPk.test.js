@@ -90,6 +90,28 @@ describe('findByPk', function () {
       }]);
     });
 
+    it('supports paranoid = false', async function () {
+      await Promise.all([
+        this.User[method(this.User, 'findByPk')](this.users[2].get('id'), {[EXPECTED_OPTIONS_KEY]: this.context}),
+        this.User[method(this.User, 'findByPk')](this.users[1].get('id'), {[EXPECTED_OPTIONS_KEY]: this.context, paranoid: false}),
+        this.User[method(this.User, 'findByPk')](this.users[0].get('id'), {[EXPECTED_OPTIONS_KEY]: this.context, paranoid: false})
+      ]);
+
+      expect(this.User.findAll, 'was called twice');
+      expect(this.User.findAll, 'to have a call satisfying', [{
+        where: {
+          id: [this.users[2].get('id')]
+        }
+      }]);
+      expect(this.User.findAll, 'to have a call satisfying', [{
+        paranoid: false,
+        where: {
+          id: [this.users[1].get('id'), this.users[0].get('id')]
+        }
+      }]);
+    });
+
+
     it('works if model method is shimmed', async function () {
       removeContext(this.connection);
 
