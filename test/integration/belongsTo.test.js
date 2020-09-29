@@ -121,6 +121,10 @@ describe('belongsTo', function () {
         someId: {
           type: Sequelize.INTEGER,
           field: 'some_id'
+        },
+        deletedAt: {
+          type: Sequelize.DATE,
+          field: 'deleted_at'
         }
       });
       this.Project = this.connection.define('project', {
@@ -141,17 +145,20 @@ describe('belongsTo', function () {
         force: true
       });
 
-      [this.user1, this.user2] = await Promise.join(
+      [this.user1, this.user2, this.user3] = await Promise.join(
         this.User.create({ id: randint(), someId: randint() }),
-        this.User.create({ id: randint(), someId: randint() })
+        this.User.create({ id: randint(), someId: randint() }),
+        this.User.create({ id: randint(), someId: randint(), deletedAt: new Date() })
       );
-      [this.project1, this.project2] = await this.Project.bulkCreate([
+      [this.project1, this.project2, this.project3] = await this.Project.bulkCreate([
+        { id: randint() },
         { id: randint() },
         { id: randint() }
       ], { returning: true });
       await Promise.join(
         this.project1.setOwner(this.user1),
-        this.project2.setOwner(this.user2)
+        this.project2.setOwner(this.user2),
+        this.project3.setOwner(this.user3)
       );
 
       this.sandbox.spy(this.User, 'findAll');
@@ -161,21 +168,36 @@ describe('belongsTo', function () {
 
     it('batches and caches to a single findAll call (createContext)', async function () {
       let user1 = this.project1.getOwner({[EXPECTED_OPTIONS_KEY]: this.context})
-        , user2 = this.project2.getOwner({[EXPECTED_OPTIONS_KEY]: this.context});
+        , user2 = this.project2.getOwner({[EXPECTED_OPTIONS_KEY]: this.context})
+        , user3 = this.project3.getOwner({[EXPECTED_OPTIONS_KEY]: this.context, paranoid: false });
 
       await expect(user1, 'to be fulfilled with', this.user1);
       await expect(user2, 'to be fulfilled with', this.user2);
+      await expect(user3, 'to be fulfilled with', this.user3);
 
       user1 = this.project1.getOwner({[EXPECTED_OPTIONS_KEY]: this.context});
       user2 = this.project2.getOwner({[EXPECTED_OPTIONS_KEY]: this.context});
+      user3 = this.project3.getOwner({[EXPECTED_OPTIONS_KEY]: this.context, paranoid: false});
 
       await expect(user1, 'to be fulfilled with', this.user1);
       await expect(user2, 'to be fulfilled with', this.user2);
+      await expect(user3, 'to be fulfilled with', this.user3);
 
-      expect(this.User.findAll, 'was called once');
+      expect(this.User.findAll, 'was called twice');
       expect(this.User.findAll, 'to have a call satisfying', [{
         where: {
-          someId: [this.project1.get('ownerId'), this.project2.get('ownerId')]
+          someId: [
+            this.project1.get('ownerId'),
+            this.project2.get('ownerId')
+          ]
+        }
+      }]);
+      expect(this.User.findAll, 'to have a call satisfying', [{
+        paranoid: false,
+        where: {
+          someId: [
+            this.project3.get('ownerId')
+          ]
         }
       }]);
     });
