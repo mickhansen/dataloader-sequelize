@@ -50,15 +50,12 @@ function stringifyValue(value, key) {
   } else if (Array.isArray(value)) {
     if (key !== 'order') {
       // attribute order doesn't matter - order order definitely does
-      value = clone(value).sort(function(o1, o2){
-        if (
-          o1 instanceof Date
-          && o2 instanceof Date
-        ) {
-          const diff = new Date(o1) - new Date(o2);
-          return diff > 0 ? 1 : (diff < 0 ? -1 : 0);
+      value = clone(value).sort((a, b) => {
+        if (a instanceof Date && b instanceof Date) {
+          const diff = new Date(a) - new Date(b);
+          return diff > 0 ? 1 : diff < 0 ? -1 : 0;
         }
-        return o1 > o2 ? 1 : (o1 < o2 ? -1 : 0);
+        return a > b ? 1 : a < b ? -1 : 0;
       });
     }
     return value.map(stringifyValue).join(',');
