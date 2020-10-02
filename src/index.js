@@ -335,7 +335,7 @@ function shimBelongsToMany(target) {
   if (target.get.__wrapped) return;
 
   shimmer.wrap(target, 'get', original => {
-    return function bathedGetHasMany(instances, options = {}) {
+    return function bathedGetBelongsToMany(instances, options = {}) {
       let isCount = false;
       assert(this.paired, '.paired missing on belongsToMany association. You need to set up both sides of the association');
 

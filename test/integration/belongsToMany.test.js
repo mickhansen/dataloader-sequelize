@@ -40,25 +40,21 @@ describe('belongsToMany', function () {
       context.Project.Users = context.Project.belongsToMany(context.User, {
         as: 'members',
         through: 'project_members',
+        sourceKey: 'id',
+        targetKey: 'id',
         foreignKey: {
           name: 'projectId',
           field: 'project_id'
         },
-        targetKey: {
-          name: 'userId',
-          field: 'user_id'
-        }
       });
       context.User.belongsToMany(context.Project, {
         through: 'project_members',
+        sourceKey: 'id',
+        targetKey: 'id',
         foreignKey: {
           name: 'userId',
           field: 'user_id'
         },
-        targetKey: {
-          name: 'projectId',
-          field: 'project_id'
-        }
       });
     }],
     ['model through', context => {
@@ -76,12 +72,12 @@ describe('belongsToMany', function () {
         as: 'members',
         through: context.ProjectMembers,
         foreignKey: 'projectId',
-        targetKey: 'userId'
+        targetKey: 'id'
       });
       context.User.belongsToMany(context.Project, {
         through: context.ProjectMembers,
         foreignKey: 'userId',
-        targetKey: 'projectId'
+        targetKey: 'id'
       });
     }]
   ].forEach(([description, setup]) => {
@@ -223,7 +219,6 @@ describe('belongsToMany', function () {
           expect(this.User.findAll, 'to have a call satisfying', [{
             through: {attributes: ['projectId', 'userId']}
           }]);
-          
         });
 
         it('batches to multiple findAll call with where', async function () {
@@ -327,7 +322,7 @@ describe('belongsToMany', function () {
           as: 'awesomeMembers',
           through: 'project_members',
           foreignKey: 'projectId',
-          targetKey: 'userId',
+          targetKey: 'id',
           scope: {
             awesome: true
           }
@@ -337,13 +332,13 @@ describe('belongsToMany', function () {
           as: 'members',
           through: 'project_members',
           foreignKey: 'projectId',
-          targetKey: 'userId'
+          targetKey: 'id'
         });
 
         this.User.belongsToMany(this.Project, {
           through: 'project_members',
           foreignKey: 'userId',
-          targetKey: 'projectId'
+          targetKey: 'id'
         });
 
         await this.connection.sync({ force: true });
@@ -463,20 +458,20 @@ describe('belongsToMany', function () {
             }
           },
           foreignKey: 'projectId',
-          targetKey: 'userId'
+          targetKey: 'id'
         });
 
         this.Project.Members = this.Project.belongsToMany(this.User, {
           as: 'members',
           through: this.ProjectMembers,
           foreignKey: 'projectId',
-          targetKey: 'userId'
+          targetKey: 'id'
         });
 
         this.User.belongsToMany(this.Project, {
           through: this.ProjectMembers,
           foreignKey: 'userId',
-          targetKey: 'projectId'
+          targetKey: 'id'
         });
 
         await this.connection.sync({ force: true });
