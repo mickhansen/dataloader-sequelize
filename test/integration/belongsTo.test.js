@@ -97,7 +97,7 @@ describe('belongsTo', function () {
       let user0 = await this.project0.getOwner();
 
 
-      //await expect(user0, 'to be fulfilled with', this.user0);
+      // await expect(user0, 'to be fulfilled with', this.user0);
       expect(user0.get('id'), 'to be', 0);
     });
 
@@ -166,7 +166,7 @@ describe('belongsTo', function () {
       this.context = createContext(this.connection);
     });
 
-    it('batches and caches to a single findAll call (createContext)', async function () {
+    it('batches and caches to multiple findAll call (createContext)', async function () {
       let user1 = this.project1.getOwner({[EXPECTED_OPTIONS_KEY]: this.context})
         , user2 = this.project2.getOwner({[EXPECTED_OPTIONS_KEY]: this.context})
         , user3 = this.project3.getOwner({[EXPECTED_OPTIONS_KEY]: this.context, paranoid: false });
