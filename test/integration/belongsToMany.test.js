@@ -5,14 +5,15 @@ import expect from 'unexpected';
 import Sequelize from 'sequelize';
 
 async function createData() {
-  [this.project1, this.project2, this.project3, this.project4] = await this.Project.bulkCreate([
+  [this.project1, this.project2, this.project3, this.project4, this.project5] = await this.Project.bulkCreate([
+    { id: randint() },
     { id: randint() },
     { id: randint() },
     { id: randint() },
     { id: randint() }
   ], {returning: true});
   this.users = await this.User.bulkCreate([
-    { id: randint(), awesome: false},
+    { id: randint(), awesome: false },
     { id: randint(), awesome: true },
     { id: randint(), awesome: true },
     { id: randint(), awesome: false },
@@ -20,12 +21,15 @@ async function createData() {
     { id: randint(), awesome: false },
     { id: randint(), awesome: true },
     { id: randint(), awesome: true },
+    { id: randint(), awesome: true },
+    { id: randint(), awesome: false, deletedAt: new Date() },
     { id: randint(), awesome: true }
   ], {returning: true});
 
   await this.project1.setMembers(this.users.slice(0, 4));
   await this.project2.setMembers(this.users.slice(3, 7));
-  await this.project3.setMembers(this.users.slice(6));
+  await this.project3.setMembers(this.users.slice(6, 9));
+  await this.project5.setMembers(this.users.slice(9, 11));
 }
 
 describe('belongsToMany', function () {
@@ -86,7 +90,10 @@ describe('belongsToMany', function () {
         before(async function () {
           this.User = this.connection.define('user', {
             name: Sequelize.STRING,
-            awesome: Sequelize.BOOLEAN
+            awesome: Sequelize.BOOLEAN,
+            deletedAt: Sequelize.DATE,
+          }, {
+            paranoid: true,
           });
           this.Project = this.connection.define('project');
 
@@ -304,6 +311,37 @@ describe('belongsToMany', function () {
               values: [this.project2.get('id')]
             }
           }]);
+        });
+
+        it('batches/caches to a multiple findAll call when getting (paranoid)', async function () {
+          let members5 = this.project5.getMembers({[EXPECTED_OPTIONS_KEY]: this.context, paranoid: false })
+            , members1 = this.project1.getMembers({[EXPECTED_OPTIONS_KEY]: this.context });
+
+          await expect(members5, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+            this.users[9],
+            this.users[10],
+          ]);
+
+          await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+            this.users[0],
+            this.users[1],
+            this.users[2],
+            this.users[3],
+          ]);
+
+          expect(this.User.findAll, 'was called once');
+          expect(this.User.findAll, 'to have a call satisfying', [{
+            include: [{
+              association: this.Project.Users.manyFromTarget,
+              where: { project_id: [ this.project5.get('id') ] }
+            }]
+          }]);
+
+          members5 = this.project5.getMembers({[EXPECTED_OPTIONS_KEY]: this.context });
+
+          await expect(members5, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+            this.users[10],
+          ]);
         });
       });
     });
