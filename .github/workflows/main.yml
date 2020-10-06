@@ -4,6 +4,15 @@ jobs:
   test:
     runs-on: ubuntu-latest
     name: CI
+    services:
+      postgres:
+        image: postgres:11-alpine
+        env:
+          POSTGRES_USER: dataloader_test
+          POSTGRES_PASSWORD: dataloader_test
+        ports:
+          - "5432:5432"
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 10
     steps:
     - uses: actions/checkout@v2
     - name: Use Node.js
