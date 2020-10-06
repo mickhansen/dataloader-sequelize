@@ -36,7 +36,7 @@
     "isparta": "^4.0.0",
     "mocha": "^3.0.0",
     "pg": "^6.1.0",
-    "sequelize": "^6.3.3",
+    "sequelize": "^6.3.5",
     "sinon": "^1.17.4",
     "sinon-as-promised": "^4.0.0",
     "unexpected": "^10.14.2",
@@ -47,9 +47,11 @@
     "sequelize": "^3.24.6 || ^4.0.0 || ^5.0.0 || ^6.0.0"
   },
   "dependencies": {
+    "add": "^2.0.6",
     "dataloader": "^1.2.0",
     "lodash": "^4.15.0",
     "lru-cache": "^4.0.1",
-    "shimmer": "^1.2.1"
+    "shimmer": "^1.2.1",
+    "yarn": "^1.22.10"
   }
 }

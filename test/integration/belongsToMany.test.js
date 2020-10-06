@@ -1,8 +1,57 @@
 import {createConnection, randint} from '../helper';
+import {intersection} from 'lodash';
 import sinon from 'sinon';
 import {createContext, EXPECTED_OPTIONS_KEY} from '../../src';
+import Promise from 'bluebird';
 import expect from 'unexpected';
 import Sequelize from 'sequelize';
+
+const setups = [
+  ['string through', context => {
+    context.Project.Users = context.Project.belongsToMany(context.User, {
+      as: 'members',
+      through: 'project_members',
+      sourceKey: 'id',
+      targetKey: 'id',
+      foreignKey: {
+        name: 'projectId',
+        field: 'project_id'
+      },
+    });
+    context.User.belongsToMany(context.Project, {
+      through: 'project_members',
+      sourceKey: 'id',
+      targetKey: 'id',
+      foreignKey: {
+        name: 'userId',
+        field: 'user_id'
+      },
+    });
+  }],
+  ['model through', context => {
+    context.ProjectMembers = context.connection.define('project_members', {
+      projectId: {
+        type: Sequelize.INTEGER,
+        field: 'project_id'
+      },
+      userId: {
+        type: Sequelize.INTEGER,
+        field: 'user_id'
+      }
+    });
+    context.Project.Users = context.Project.belongsToMany(context.User, {
+      as: 'members',
+      through: context.ProjectMembers,
+      foreignKey: 'projectId',
+      targetKey: 'id'
+    });
+    context.User.belongsToMany(context.Project, {
+      through: context.ProjectMembers,
+      foreignKey: 'userId',
+      targetKey: 'id'
+    });
+  }]
+];
 
 async function createData() {
   [this.project1, this.project2, this.project3, this.project4, this.project5] = await this.Project.bulkCreate([
@@ -22,7 +71,7 @@ async function createData() {
     { id: randint(), awesome: true },
     { id: randint(), awesome: true },
     { id: randint(), awesome: true },
-    { id: randint(), awesome: false, deletedAt: new Date() },
+    { id: randint(), awesome: false },
     { id: randint(), awesome: true }
   ], {returning: true});
 
@@ -30,6 +79,12 @@ async function createData() {
   await this.project2.setMembers(this.users.slice(3, 7));
   await this.project3.setMembers(this.users.slice(6, 9));
   await this.project5.setMembers(this.users.slice(9, 11));
+
+  await this.User.update({ deletedAt: new Date() }, {
+    where: {
+      id: [this.users[9].get('id')]
+    }
+  });
 }
 
 describe('belongsToMany', function () {
@@ -39,52 +94,7 @@ describe('belongsToMany', function () {
 
   before(createConnection);
 
-  [
-    ['string through', context => {
-      context.Project.Users = context.Project.belongsToMany(context.User, {
-        as: 'members',
-        through: 'project_members',
-        sourceKey: 'id',
-        targetKey: 'id',
-        foreignKey: {
-          name: 'projectId',
-          field: 'project_id'
-        },
-      });
-      context.User.belongsToMany(context.Project, {
-        through: 'project_members',
-        sourceKey: 'id',
-        targetKey: 'id',
-        foreignKey: {
-          name: 'userId',
-          field: 'user_id'
-        },
-      });
-    }],
-    ['model through', context => {
-      context.ProjectMembers = context.connection.define('project_members', {
-        projectId: {
-          type: Sequelize.INTEGER,
-          field: 'project_id'
-        },
-        userId: {
-          type: Sequelize.INTEGER,
-          field: 'user_id'
-        }
-      });
-      context.Project.Users = context.Project.belongsToMany(context.User, {
-        as: 'members',
-        through: context.ProjectMembers,
-        foreignKey: 'projectId',
-        targetKey: 'id'
-      });
-      context.User.belongsToMany(context.Project, {
-        through: context.ProjectMembers,
-        foreignKey: 'userId',
-        targetKey: 'id'
-      });
-    }]
-  ].forEach(([description, setup]) => {
+  setups.forEach(([description, setup]) => {
     describe(description, function () {
       describe('simple association', function () {
         before(async function () {
@@ -197,24 +207,26 @@ describe('belongsToMany', function () {
         });
 
         it('batches to multiple findAll call when different limits are applied', async function () {
-          let members1 = this.project1.getMembers({ limit: 4, [EXPECTED_OPTIONS_KEY]: this.context })
-            , members2 = this.project2.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context })
-            , members3 = this.project3.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context });
+          const [members1, members2, members3] = await Promise.all([
+            this.project1.getMembers({ limit: 4, [EXPECTED_OPTIONS_KEY]: this.context }),
+            this.project2.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context }),
+            this.project3.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context }),
+          ]);
 
-          await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-            this.users[0],
-            this.users[1],
-            this.users[2],
-            this.users[3]
-          ]);
-          await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-            this.users[3],
-            this.users[4]
-          ]);
-          await expect(members3, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-            this.users[6],
-            this.users[7]
-          ]);
+          // there is no guaranteed order and this test returns different
+          // values depending on the sequelize version.
+          const allMembers1 = this.users.slice(0, 4).map(user => user.get('id'));
+          const allMembers2 = this.users.slice(3, 7).map(user => user.get('id'));
+          const allMembers3 = this.users.slice(6, 9).map(user => user.get('id'));
+
+          const intersection1 = intersection(members1.map(user => user.get('id')), allMembers1);
+          expect(intersection1.length, 'to equal', 4);
+
+          const intersection2 = intersection(members2.map(user => user.get('id')), allMembers2);
+          expect(intersection2.length, 'to equal', 2);
+
+          const intersection3 = intersection(members3.map(user => user.get('id')), allMembers3);
+          expect(intersection3.length, 'to equal', 2);
 
           expect(this.User.findAll, 'was called twice');
         });
@@ -255,30 +267,36 @@ describe('belongsToMany', function () {
         });
 
         it('batches to multiple findAll call with where + limit', async function () {
-          let members1 = this.project1.getMembers({ where: { awesome: true }, limit: 1, [EXPECTED_OPTIONS_KEY]: this.context })
-            , members2 = this.project2.getMembers({ where: { awesome: true }, limit: 1, [EXPECTED_OPTIONS_KEY]: this.context })
-            , members3 = this.project2.getMembers({ where: { awesome: false }, limit: 2, [EXPECTED_OPTIONS_KEY]: this.context })
-            , members4 = this.project3.getMembers({ where: { awesome: true }, limit: 2, [EXPECTED_OPTIONS_KEY]: this.context })
-            , members5 = this.project3.getMembers({ where: { awesome: true }, limit: 2, [EXPECTED_OPTIONS_KEY]: this.context });
+          const [members1, members2, members3, members4, members5] = await Promise.all([
+            this.project1.getMembers({ where: { awesome: true }, limit: 1, [EXPECTED_OPTIONS_KEY]: this.context }),
+            this.project2.getMembers({ where: { awesome: true }, limit: 1, [EXPECTED_OPTIONS_KEY]: this.context }),
+            this.project2.getMembers({ where: { awesome: false }, limit: 2, [EXPECTED_OPTIONS_KEY]: this.context }),
+            this.project3.getMembers({ where: { awesome: true }, limit: 2, [EXPECTED_OPTIONS_KEY]: this.context }),
+            this.project3.getMembers({ where: { awesome: true }, limit: 2, [EXPECTED_OPTIONS_KEY]: this.context }),
+          ]);
 
-          await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-            this.users[1]
-          ]);
-          await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-            this.users[4]
-          ]);
-          await expect(members3, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-            this.users[3],
-            this.users[5]
-          ]);
-          await expect(members4, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-            this.users[6],
-            this.users[7]
-          ]);
-          await expect(members5, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-            this.users[6],
-            this.users[7]
-          ]);
+          // there is no guaranteed order and this test returns different
+          // values depending on the sequelize version.
+          const allMembers1 = this.users.slice(0, 4).map(user => user.get('id'));
+          const allMembers2 = this.users.slice(3, 7).map(user => user.get('id'));
+          const allMembers3 = this.users.slice(3, 7).map(user => user.get('id'));
+          const allMembers4 = this.users.slice(6, 9).map(user => user.get('id'));
+          const allMembers5 = this.users.slice(6, 9).map(user => user.get('id'));
+
+          const intersection1 = intersection(members1.map(user => user.get('id')), allMembers1);
+          expect(intersection1.length, 'to equal', 1);
+
+          const intersection2 = intersection(members2.map(user => user.get('id')), allMembers2);
+          expect(intersection2.length, 'to equal', 1);
+
+          const intersection3 = intersection(members3.map(user => user.get('id')), allMembers3);
+          expect(intersection3.length, 'to equal', 2);
+
+          const intersection4 = intersection(members4.map(user => user.get('id')), allMembers4);
+          expect(intersection4.length, 'to equal', 2);
+
+          const intersection5 = intersection(members5.map(user => user.get('id')), allMembers5);
+          expect(intersection5.length, 'to equal', 2);
 
           expect(this.User.findAll, 'was called thrice');
           expect(this.User.findAll, 'to have a call satisfying', [{
@@ -312,15 +330,44 @@ describe('belongsToMany', function () {
             }
           }]);
         });
+      });
+    });
+  });
 
-        it('batches/caches to a multiple findAll call when getting (paranoid)', async function () {
-          let members5 = this.project5.getMembers({[EXPECTED_OPTIONS_KEY]: this.context, paranoid: false })
-            , members1 = this.project1.getMembers({[EXPECTED_OPTIONS_KEY]: this.context });
+  setups.forEach(([description, setup]) => {
+    describe(description, function () {
+      describe('paranoid', function () {
+        before(async function () {
+          this.User = this.connection.define('user', {
+            name: Sequelize.STRING,
+            awesome: Sequelize.BOOLEAN,
+            deletedAt: Sequelize.DATE,
+          }, {
+            paranoid: true,
+          });
+          this.Project = this.connection.define('project');
 
-          await expect(members5, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-            this.users[9],
-            this.users[10],
-          ]);
+          setup(this);
+
+          await this.connection.sync({ force: true });
+          await createData.call(this);
+
+          this.context = createContext(this.connection);
+        });
+
+        beforeEach(function () {
+          this.sandbox = sinon.sandbox.create();
+
+          this.sandbox.spy(this.User, 'findAll');
+        });
+
+        afterEach(function () {
+          this.sandbox.restore();
+        });
+
+        it('batches and caches to a single findAll call (paranoid)', async function () {
+          let members1 = this.project1.getMembers({[EXPECTED_OPTIONS_KEY]: this.context})
+            , members5 = this.project5.getMembers({[EXPECTED_OPTIONS_KEY]: this.context});
 
           await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
             this.users[0],
@@ -328,20 +375,68 @@ describe('belongsToMany', function () {
             this.users[2],
             this.users[3],
           ]);
+          await expect(members5, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+            this.users[10],
+          ]);
+
+          members1 = this.project1.getMembers({[EXPECTED_OPTIONS_KEY]: this.context});
+          members5 = this.project5.getMembers({[EXPECTED_OPTIONS_KEY]: this.context});
+
+          await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+            this.users[0],
+            this.users[1],
+            this.users[2],
+            this.users[3],
+          ]);
+          await expect(members5, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+            this.users[10],
+          ]);
 
           expect(this.User.findAll, 'was called once');
           expect(this.User.findAll, 'to have a call satisfying', [{
             include: [{
               association: this.Project.Users.manyFromTarget,
-              where: { project_id: [ this.project5.get('id') ] }
+              where: { project_id: [this.project1.get('id'), this.project5.get('id')] }
             }]
           }]);
+        });
 
-          members5 = this.project5.getMembers({[EXPECTED_OPTIONS_KEY]: this.context });
+        it('batches and caches to a single findAll call (not paranoid)', async function () {
+          let members1 = this.project1.getMembers({[EXPECTED_OPTIONS_KEY]: this.context, paranoid: false})
+            , members5 = this.project5.getMembers({[EXPECTED_OPTIONS_KEY]: this.context, paranoid: false});
 
+          await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+            this.users[0],
+            this.users[1],
+            this.users[2],
+            this.users[3],
+          ]);
           await expect(members5, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+            this.users[9],
             this.users[10],
           ]);
+
+          members1 = this.project1.getMembers({[EXPECTED_OPTIONS_KEY]: this.context, paranoid: false});
+          members5 = this.project5.getMembers({[EXPECTED_OPTIONS_KEY]: this.context, paranoid: false});
+
+          await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+            this.users[0],
+            this.users[1],
+            this.users[2],
+            this.users[3],
+          ]);
+          await expect(members5, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+            this.users[9],
+            this.users[10],
+          ]);
+
+          expect(this.User.findAll, 'was called once');
+          expect(this.User.findAll, 'to have a call satisfying', [{
+            include: [{
+              association: this.Project.Users.manyFromTarget,
+              where: { project_id: [this.project1.get('id'), this.project5.get('id')] }
+            }]
+          }]);
         });
       });
     });

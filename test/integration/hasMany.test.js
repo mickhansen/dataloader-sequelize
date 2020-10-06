@@ -1,8 +1,10 @@
 import Sequelize from 'sequelize';
+import {intersection} from 'lodash';
 import {createConnection, randint} from '../helper';
 import sinon from 'sinon';
 import DataLoader from 'dataloader';
 import {createContext, EXPECTED_OPTIONS_KEY} from '../../src';
+import Promise from 'bluebird';
 import expect from 'unexpected';
 import {method} from '../../src/helper';
 
@@ -14,7 +16,7 @@ async function createData() {
     { id: randint() }
   ], {returning: true});
   this.users = await this.User.bulkCreate([
-    { id: randint(), awesome: false, deletedAt: new Date() },
+    { id: randint(), awesome: false },
     { id: randint(), awesome: true },
     { id: randint(), awesome: true },
     { id: randint(), awesome: false },
@@ -22,12 +24,18 @@ async function createData() {
     { id: randint(), awesome: false },
     { id: randint(), awesome: true },
     { id: randint(), awesome: true },
-    { id: randint(), awesome: true, deletedAt: new Date() }
+    { id: randint(), awesome: true }
   ], {returning: true});
 
   await this.project1.setMembers(this.users.slice(0, 3));
   await this.project2.setMembers(this.users.slice(3, 7));
   await this.project3.setMembers(this.users.slice(7));
+
+  await this.User.update({ deletedAt: new Date() }, {
+    where: {
+      id: [this.users[0].get('id'), this.users[8].get('id')]
+    }
+  });
 }
 
 describe('hasMany', function () {
@@ -175,17 +183,21 @@ describe('hasMany', function () {
     });
 
     it('batches to a single findAll call when limits are the same', async function () {
-      let members1 = this.project1.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context })
-        , members2 = this.project2.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context });
+      const [members1, members2] = await Promise.all([
+        this.project1.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context }),
+        this.project2.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context }),
+      ]);
 
-      await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-        this.users[0],
-        this.users[1]
-      ]);
-      await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-        this.users[3],
-        this.users[4]
-      ]);
+      // there is no guaranteed order and this test returns different
+      // values depending on the sequelize version.
+      const allMembers1 = this.users.slice(0, 3).map(user => user.get('id'));
+      const allMembers2 = this.users.slice(3, 7).map(user => user.get('id'));
+
+      const intersection1 = intersection(members1.map(user => user.get('id')), allMembers1);
+      expect(intersection1.length, 'to equal', 2);
+
+      const intersection2 = intersection(members2.map(user => user.get('id')), allMembers2);
+      expect(intersection2.length, 'to equal', 2);
 
       expect(this.User.findAll, 'was called once');
       expect(this.User.findAll, 'to have a call satisfying', [{
@@ -198,23 +210,26 @@ describe('hasMany', function () {
     });
 
     it('batches to multiple findAll call when limits are different', async function () {
-      let members1 = this.project1.getMembers({ limit: 4, [EXPECTED_OPTIONS_KEY]: this.context })
-        , members2 = this.project2.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context })
-        , members3 = this.project3.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context });
+      const [members1, members2, members3] = await Promise.all([
+        this.project1.getMembers({ limit: 4, [EXPECTED_OPTIONS_KEY]: this.context }),
+        this.project2.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context }),
+        this.project3.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context }),
+      ]);
 
-      await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-        this.users[0],
-        this.users[1],
-        this.users[2]
-      ]);
-      await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-        this.users[3],
-        this.users[4]
-      ]);
-      await expect(members3, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-        this.users[7],
-        this.users[8]
-      ]);
+      // there is no guaranteed order and this test returns different
+      // values depending on the sequelize version.
+      const allMembers1 = this.users.slice(0, 3).map(user => user.get('id'));
+      const allMembers2 = this.users.slice(3, 7).map(user => user.get('id'));
+      const allMembers3 = this.users.slice(7).map(user => user.get('id'));
+
+      const intersection1 = intersection(members1.map(user => user.get('id')), allMembers1);
+      expect(intersection1.length, 'to equal', 3);
+
+      const intersection2 = intersection(members2.map(user => user.get('id')), allMembers2);
+      expect(intersection2.length, 'to equal', 2);
+
+      const intersection3 = intersection(members3.map(user => user.get('id')), allMembers3);
+      expect(intersection3.length, 'to equal', 2);
 
       expect(this.User.findAll, 'was called twice');
       expect(this.User.findAll, 'to have a call satisfying', [{
@@ -324,24 +339,31 @@ describe('hasMany', function () {
     });
 
     it('batches to multiple findAll call with where + limit', async function () {
-      let members1 = this.project1.getMembers({ where: { awesome: true }, limit: 1, [EXPECTED_OPTIONS_KEY]: this.context })
-        , members2 = this.project2.getMembers({ where: { awesome: true }, limit: 1, [EXPECTED_OPTIONS_KEY]: this.context })
-        , members3 = this.project2.getMembers({ where: { awesome: false }, limit: 1, [EXPECTED_OPTIONS_KEY]: this.context })
-        , members4 = this.project3.getMembers({ where: { awesome: true }, limit: 2, [EXPECTED_OPTIONS_KEY]: this.context });
+      let [members1, members2, members3, members4] = await Promise.all([
+        this.project1.getMembers({ where: { awesome: true }, limit: 1, [EXPECTED_OPTIONS_KEY]: this.context }),
+        this.project2.getMembers({ where: { awesome: true }, limit: 1, [EXPECTED_OPTIONS_KEY]: this.context }),
+        this.project2.getMembers({ where: { awesome: false }, limit: 1, [EXPECTED_OPTIONS_KEY]: this.context }),
+        this.project3.getMembers({ where: { awesome: true }, limit: 2, [EXPECTED_OPTIONS_KEY]: this.context }),
+      ]);
 
-      await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-        this.users[1]
-      ]);
-      await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-        this.users[4]
-      ]);
-      await expect(members3, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-        this.users[3]
-      ]);
-      await expect(members4, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-        this.users[7],
-        this.users[8]
-      ]);
+      // there is no guaranteed order and this test returns different
+      // values depending on the sequelize version.
+      const allMembers1 = this.users.slice(0, 3).map(user => user.get('id'));
+      const allMembers2 = this.users.slice(3, 7).map(user => user.get('id'));
+      const allMembers3 = this.users.slice(3, 7).map(user => user.get('id'));
+      const allMembers4 = this.users.slice(7).map(user => user.get('id'));
+
+      const intersection1 = intersection(members1.map(user => user.get('id')), allMembers1);
+      expect(intersection1.length, 'to equal', 1);
+
+      const intersection2 = intersection(members2.map(user => user.get('id')), allMembers2);
+      expect(intersection2.length, 'to equal', 1);
+
+      const intersection3 = intersection(members3.map(user => user.get('id')), allMembers3);
+      expect(intersection3.length, 'to equal', 1);
+
+      const intersection4 = intersection(members4.map(user => user.get('id')), allMembers4);
+      expect(intersection4.length, 'to equal', 2);
 
       expect(this.User.findAll, 'was called thrice');
       expect(this.User.findAll, 'to have a call satisfying', [{
@@ -491,7 +513,6 @@ describe('hasMany', function () {
       this.Project.hasMany(this.User, { as: 'members' });
       await this.connection.sync({ force: true });
       await createData.call(this);
-      this.context = createContext(this.connection);
     });
 
     beforeEach(function () {
@@ -502,9 +523,23 @@ describe('hasMany', function () {
       this.sandbox.restore();
     });
 
-    it('batches to a single findAll call', async function () {
+    it('batches and caches to a single findAll call (paranoid)', async function () {
       let members1 = this.project1.getMembers({[EXPECTED_OPTIONS_KEY]: this.context})
         , members2 = this.project2.getMembers({[EXPECTED_OPTIONS_KEY]: this.context});
+
+      await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[1],
+        this.users[2],
+      ]);
+      await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[3],
+        this.users[4],
+        this.users[5],
+        this.users[6]
+      ]);
+
+      members1 = this.project1.getMembers({[EXPECTED_OPTIONS_KEY]: this.context});
+      members2 = this.project2.getMembers({[EXPECTED_OPTIONS_KEY]: this.context});
 
       await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
         this.users[1],
@@ -525,18 +560,62 @@ describe('hasMany', function () {
       }]);
     });
 
-    it('batches to a single findAll call when limits are the same', async function () {
-      let members1 = this.project1.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context })
-        , members2 = this.project2.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context });
+    it('batches and caches to a single findAll call (not paranoid)', async function () {
+      let members1 = this.project1.getMembers({[EXPECTED_OPTIONS_KEY]: this.context, paranoid: false})
+        , members2 = this.project2.getMembers({[EXPECTED_OPTIONS_KEY]: this.context, paranoid: false});
 
       await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[0],
         this.users[1],
-        this.users[2]
+        this.users[2],
       ]);
       await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
         this.users[3],
-        this.users[4]
+        this.users[4],
+        this.users[5],
+        this.users[6]
       ]);
+
+      members1 = this.project1.getMembers({[EXPECTED_OPTIONS_KEY]: this.context, paranoid: false});
+      members2 = this.project2.getMembers({[EXPECTED_OPTIONS_KEY]: this.context, paranoid: false});
+
+      await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[0],
+        this.users[1],
+        this.users[2],
+      ]);
+      await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
+        this.users[3],
+        this.users[4],
+        this.users[5],
+        this.users[6]
+      ]);
+
+      expect(this.User.findAll, 'was called once');
+      expect(this.User.findAll, 'to have a call satisfying', [{
+        paranoid: false,
+        where: {
+          projectId: [this.project1.get('id'), this.project2.get('id')]
+        }
+      }]);
+    });
+
+    it('batches to a single findAll call when limits are the same', async function () {
+      let [members1, members2] = await Promise.all([
+        this.project1.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context }),
+        this.project2.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context }),
+      ]);
+
+      // there is no guaranteed order and this test returns different
+      // values depending on the sequelize version.
+      const allMembers1 = this.users.slice(1, 3).map(user => user.get('id')); // 0 is deleted
+      const allMembers2 = this.users.slice(3, 7).map(user => user.get('id'));
+
+      const intersection1 = intersection(members1.map(user => user.get('id')), allMembers1);
+      expect(intersection1.length, 'to equal', 2);
+
+      const intersection2 = intersection(members2.map(user => user.get('id')), allMembers2);
+      expect(intersection2.length, 'to equal', 2);
 
       expect(this.User.findAll, 'was called once');
       expect(this.User.findAll, 'to have a call satisfying', [{
@@ -548,22 +627,27 @@ describe('hasMany', function () {
       }]);
     });
 
-    it('batches to multiple findAll call when limits are different', async function () {
-      let members1 = this.project1.getMembers({ limit: 4, [EXPECTED_OPTIONS_KEY]: this.context })
-        , members2 = this.project2.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context })
-        , members3 = this.project3.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context });
+    it('batches to multiple findAll calls when limits are different', async function () {
+      let [members1, members2, members3] = await Promise.all([
+        this.project1.getMembers({ limit: 4, [EXPECTED_OPTIONS_KEY]: this.context }),
+        this.project2.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context }),
+        this.project3.getMembers({ limit: 2, [EXPECTED_OPTIONS_KEY]: this.context }),
+      ]);
 
-      await expect(members1, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-        this.users[1],
-        this.users[2]
-      ]);
-      await expect(members2, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-        this.users[3],
-        this.users[4]
-      ]);
-      await expect(members3, 'when fulfilled', 'with set semantics to exhaustively satisfy', [
-        this.users[7]
-      ]);
+      // there is no guaranteed order and this test returns different
+      // values depending on the sequelize version.
+      const allMembers1 = this.users.slice(1, 3).map(user => user.get('id')); // 0 is deleted
+      const allMembers2 = this.users.slice(3, 7).map(user => user.get('id'));
+      const allMembers3 = this.users.slice(7, 8).map(user => user.get('id')); // 8 is deleted
+
+      const intersection1 = intersection(members1.map(user => user.get('id')), allMembers1);
+      expect(intersection1.length, 'to equal', 2);
+
+      const intersection2 = intersection(members2.map(user => user.get('id')), allMembers2);
+      expect(intersection2.length, 'to equal', 2);
+
+      const intersection3 = intersection(members3.map(user => user.get('id')), allMembers3);
+      expect(intersection3.length, 'to equal', 1);
 
       expect(this.User.findAll, 'was called twice');
       expect(this.User.findAll, 'to have a call satisfying', [{
