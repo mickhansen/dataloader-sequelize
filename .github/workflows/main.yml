@@ -11,7 +11,7 @@ jobs:
       with:
         node-version: '12.x'
     - run: yarn install --pure-lockfile  
-    - run: yarn run test:v3
+    - run: yarn run test:v3:raw
     - run: yarn run test:v4
     - run: yarn run test:v5
     - run: yarn run test:latest
