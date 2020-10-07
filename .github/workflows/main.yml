@@ -24,23 +24,14 @@ jobs:
       with:
         node-version: '12.x'
     - run: yarn install --pure-lockfile
-    - name: Test v3
+    - name: Run Tests
       run: yarn run test:v3:raw
-      env:
-        DB_HOST: localhost
-        DB_DATABASE: dataloader_test
-        DB_USER: dataloader_test
-        DB_PASSWORD: dataloader_test
-        DB_PORT: 5432
-    - name: Test v4
       run: yarn run test:v4:raw
+      run: yarn run test:v5:raw
+      run: yarn run test:latest:raw
       env:
         DB_HOST: localhost
         DB_DATABASE: dataloader_test
         DB_USER: dataloader_test
         DB_PASSWORD: dataloader_test
         DB_PORT: 5432
-    - name: Test v5
-      run: yarn run test:v5
-    - name: Test Latest Version
-      run: yarn run test:latest
