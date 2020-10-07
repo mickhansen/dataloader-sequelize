@@ -8,11 +8,14 @@ jobs:
       postgres:
         image: postgres:11-alpine
         env:
-          POSTGRES_USER: dataloader_test
-          POSTGRES_PASSWORD: dataloader_test
+          POSTGRES_PASSWORD: postgres
         ports:
-          - "5432:5432"
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 10
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     steps:
     - uses: actions/checkout@v2
     - name: Use Node.js
@@ -24,3 +27,6 @@ jobs:
     - run: yarn run test:v4
     - run: yarn run test:v5
     - run: yarn run test:latest
+    - env:
+        POSTGRES_HOST: localhost
+        POSTGRES_PORT: 5432
