@@ -13,13 +13,18 @@
     "build": "babel src -d lib",
     "test": "yarn run lint && yarn run test:v3 && yarn run test:v4 && yarn run test:v5 && yarn run test:latest",
     "test:current": "npm run test:unit && npm run test:integration",
+    "test:current:raw": "npm run test:unit && npm run test:integration:raw",
     "test:unit": "NODE_ENV=test mocha $npm_package_options_mocha 'test/unit/**.test.js'",
     "test:integration": "docker-compose run --rm -e NODE_ENV=test dev npm run test:integration:raw",
     "test:integration:raw": "mocha $npm_package_options_mocha 'test/integration/**.test.js'",
     "test:v3": "yarn add sequelize@3 && yarn run test:current",
+    "test:v3:raw": "yarn add sequelize@3 && yarn run test:current:raw",
     "test:latest": "yarn add sequelize@latest && yarn run test:current",
+    "test:latest:raw": "yarn add sequelize@latest && yarn run test:current:raw",
     "test:v5": "yarn add sequelize@5 && yarn run test:current",
+    "test:v5:raw": "yarn add sequelize@5 && yarn run test:current:raw",
     "test:v4": "yarn add sequelize@4 && yarn run test:current",
+    "test:v4:raw": "yarn add sequelize@4 && yarn run test:current:raw",
     "cover": "babel-node node_modules/.bin/isparta cover --excludes **/resources/** _mocha -- $npm_package_options_mocha 'test/**/*.test.js'"
   },
   "devDependencies": {
