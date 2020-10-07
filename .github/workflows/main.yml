@@ -8,6 +8,7 @@ jobs:
       postgres:
         image: postgres:11-alpine
         env:
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
         ports:
           - 5432:5432
@@ -26,10 +27,10 @@ jobs:
     - name: Test v3
       run: yarn run test:v3:raw
       env:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
         POSTGRES_HOST: localhost
         POSTGRES_PORT: 5432
-        POSTGRES_USER: runner
-        POSTGRES_PASSWORD: postgres
     - name: Test v4
       run: yarn run test:v4
     - name: Test v5
