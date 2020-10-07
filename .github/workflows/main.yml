@@ -8,8 +8,8 @@ jobs:
       postgres:
         image: postgres:11-alpine
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: dataloader_test
+          POSTGRES_PASSWORD: dataloader_test
         ports:
           - 5432:5432
         options: >-
@@ -27,10 +27,11 @@ jobs:
     - name: Test v3
       run: yarn run test:v3:raw
       env:
-        POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: postgres
-        POSTGRES_HOST: localhost
-        POSTGRES_PORT: 5432
+        DB_HOST: localhost
+        DB_DATABASE: dataloader_test
+        DB_USER: dataloader_test
+        DB_PASSWORD: dataloader_test
+        DB_PORT: 5432
     - name: Test v4
       run: yarn run test:v4
     - name: Test v5
