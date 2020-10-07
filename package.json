@@ -22,6 +22,7 @@
     "test:latest": "yarn add sequelize@latest && yarn run test:current",
     "test:v5": "yarn add sequelize@5 && yarn run test:current",
     "test:v4": "yarn add sequelize@4 && yarn run test:current",
+    "test:v4:raw": "yarn add sequelize@4 && yarn run test:current:raw",
     "cover": "babel-node node_modules/.bin/isparta cover --excludes **/resources/** _mocha -- $npm_package_options_mocha 'test/**/*.test.js'"
   },
   "devDependencies": {
