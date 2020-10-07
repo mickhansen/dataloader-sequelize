@@ -22,11 +22,15 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: '12.x'
-    - run: yarn install --pure-lockfile  
-    - run: yarn run test:v3:raw
-    - run: yarn run test:v4
-    - run: yarn run test:v5
-    - run: yarn run test:latest
-    - env:
+    - run: yarn install --pure-lockfile
+    - name: Test v3
+      run: yarn run test:v3:raw
+      env:
         POSTGRES_HOST: localhost
         POSTGRES_PORT: 5432
+    - name: Test v4
+      run: yarn run test:v4
+    - name: Test v5
+      run: yarn run test:v5
+    - name: Test Latest Version
+      run: yarn run test:latest
