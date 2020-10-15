@@ -3,9 +3,9 @@
 
 
 "@types/node@*":
-  version "14.0.23"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.0.23.tgz#676fa0883450ed9da0bb24156213636290892806"
-  integrity sha512-Z4U8yDAl5TFkmYsZdFPdjeMa57NOvnaf1tljHzhouaPEp7LCj2JKkejpI1ODviIAQuW4CcQmxkQ77rnLsOOoKw==
+  version "14.11.8"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.11.8.tgz#fe2012f2355e4ce08bca44aeb3abbb21cf88d33f"
+  integrity sha512-KPcKqKm5UKDkaYPTuXSx8wEP7vE9GnuaXIZKijwRYcePpZFDVuy2a57LarFKiORbHOuTOOwYzxVxcUzsh2P2Pw==
 
 abbrev@1:
   version "1.1.1"
@@ -856,11 +856,11 @@ debug@^2.1.1, debug@^2.1.2, debug@^2.2.0, debug@^2.3.3, debug@^2.6.8, debug@^2.6
     ms "2.0.0"
 
 debug@^4.1.1:
-  version "4.1.1"
-  resolved "https://registry.yarnpkg.com/debug/-/debug-4.1.1.tgz#3b72260255109c6b589cee050f1d516139664791"
-  integrity sha512-pYAIzeRo8J6KPEaJ0VWOh5Pzkbw/RetuzehGM7QRRX5he4fPHx2rdKMB256ehJCkX+XRQm16eZLqLNS8RSZXZw==
+  version "4.2.0"
+  resolved "https://registry.yarnpkg.com/debug/-/debug-4.2.0.tgz#7f150f93920e94c58f5574c2fd01a3110effe7f1"
+  integrity sha512-IX2ncY78vDTjZMFUdmsvIRFY2Cf4FnD0wRs+nQwJU8Lu99/tPFdb0VybiiMTPe3I6rQmwsqQqRBvxU+bZ/I8sg==
   dependencies:
-    ms "^2.1.1"
+    ms "2.1.2"
 
 decode-uri-component@^0.2.0:
   version "0.2.0"
@@ -2008,9 +2008,9 @@ lodash@^4.0.0, lodash@^4.15.0, lodash@^4.17.4, lodash@^4.3.0:
   integrity sha512-cQKh8igo5QUhZ7lg38DYWAxMvjSAKG0A8wGSVimP07SIUEK2UO+arSRKbRZWtelMtN5V0Hkwh5ryOto/SshYIg==
 
 lodash@^4.17.15:
-  version "4.17.19"
-  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.19.tgz#e48ddedbe30b3321783c5b4301fbd353bc1e4a4b"
-  integrity sha512-JNvd8XER9GQX0v2qJgsaN/mzFCNA5BRe/j8JN9d+tWyGLSodKQHKFicdwNYzWwI3wjRnaKPsGj1XkBjx/F96DQ==
+  version "4.17.20"
+  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.20.tgz#b44a9b6297bcb698f1c51a3545a2b3b368d59c52"
+  integrity sha512-PlhdFcillOINfeV7Ni6oF1TAEayyZBoZ8bcshTHqOYJYlrqzRK5hagpagky5o4HfCzzd1TRkXPMFq6cKk9rGmA==
 
 lolex@1.3.2:
   version "1.3.2"
@@ -2179,16 +2179,16 @@ moment-timezone@^0.5.31:
   integrity sha512-bV7f+6l2QigeBBZSM/6yTNq4P2fNpSWj/0e7jQcy87A8e7o2nAfP/34/2ky5Vw4B9S446EtIhodAzkFCcR4dQg==
 
 moment@^2.26.0:
-  version "2.27.0"
-  resolved "https://registry.yarnpkg.com/moment/-/moment-2.27.0.tgz#8bff4e3e26a236220dfe3e36de756b6ebaa0105d"
-  integrity sha512-al0MUK7cpIcglMv3YF13qSgdAIqxHTO7brRtaz3DlSULbqfazqkc5kEjNrLDOM7fsjshoFIihnU8snrP7zUvhQ==
+  version "2.29.1"
+  resolved "https://registry.yarnpkg.com/moment/-/moment-2.29.1.tgz#b2be769fa31940be9eeea6469c075e35006fa3d3"
+  integrity sha512-kHmoybcPV8Sqy59DwNDY3Jefr64lK/by/da0ViFcuA4DH0vQg5Q6Ze5VimxkfQNSC+Mls/Kx53s7TjP1RhFEDQ==
 
 ms@2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/ms/-/ms-2.0.0.tgz#5608aeadfc00be6c2901df5f9861788de0d597c8"
   integrity sha1-VgiurfwAvmwpAd9fmGF4jeDVl8g=
 
-ms@^2.1.1:
+ms@2.1.2:
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/ms/-/ms-2.1.2.tgz#d09d1f357b443f493382a8eb3ccd183872ae6009"
   integrity sha512-sGkPx+VjMtmA6MX27oA4FBFELFCZZ4S4XqeGOXCv68tT+jb3vk/RyaKWP0PTKyWtmLSM0b+adUTEvbs1PEaH2w==
@@ -2833,10 +2833,10 @@ sequelize-pool@^6.0.0:
   resolved "https://registry.yarnpkg.com/sequelize-pool/-/sequelize-pool-6.1.0.tgz#caaa0c1e324d3c2c3a399fed2c7998970925d668"
   integrity sha512-4YwEw3ZgK/tY/so+GfnSgXkdwIJJ1I32uZJztIEgZeAO6HMgj64OzySbWLgxj+tXhZCJnzRfkY9gINw8Ft8ZMg==
 
-sequelize@^6.3.3:
-  version "6.3.3"
-  resolved "https://registry.yarnpkg.com/sequelize/-/sequelize-6.3.3.tgz#930ab26f9e928d9bf2fe1fe477b428a092fef063"
-  integrity sha512-WO/b1ehjSFKlBCHzwZoaPhoW3WyXXy9x74yPrOP8NpE67wzbv0dIucDO4a+THLVyl3lnv3nFMZdJRdkUgb/ZAw==
+sequelize@^6.3.5:
+  version "6.3.5"
+  resolved "https://registry.yarnpkg.com/sequelize/-/sequelize-6.3.5.tgz#80e3db7ac8b76d98c45ca93334197eb6e2335158"
+  integrity sha512-MiwiPkYSA8NWttRKAXdU9h0TxP6HAc1fl7qZmMO/VQqQOND83G4nZLXd0kWILtAoT9cxtZgFqeb/MPYgEeXwsw==
   dependencies:
     debug "^4.1.1"
     dottie "^2.0.0"
@@ -3293,9 +3293,9 @@ util-deprecate@~1.0.1:
     inherits "2.0.3"
 
 uuid@^8.1.0:
-  version "8.2.0"
-  resolved "https://registry.yarnpkg.com/uuid/-/uuid-8.2.0.tgz#cb10dd6b118e2dada7d0cd9730ba7417c93d920e"
-  integrity sha512-CYpGiFTUrmI6OBMkAdjSDM0k5h8SkkiTP4WAjQgDgNB1S3Ou9VBEvr6q0Kv2H1mMk7IWfxYGpMH5sd5AvcIV2Q==
+  version "8.3.1"
+  resolved "https://registry.yarnpkg.com/uuid/-/uuid-8.3.1.tgz#2ba2e6ca000da60fce5a196954ab241131e05a31"
+  integrity sha512-FOmRr+FmWEIG8uhZv6C2bTgEVXsHk08kE7mPlrBbEe+c3r9pjceVPgupIfNIhc4yx55H69OXANrUaSuu9eInKg==
 
 v8flags@^2.1.1:
   version "2.1.1"

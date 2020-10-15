@@ -4,14 +4,53 @@ jobs:
   test:
     runs-on: ubuntu-latest
     name: CI
+    services:
+      postgres:
+        image: postgres:11-alpine
+        env:
+          POSTGRES_USER: dataloader_test
+          POSTGRES_PASSWORD: dataloader_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     steps:
     - uses: actions/checkout@v2
     - name: Use Node.js
       uses: actions/setup-node@v1
       with:
         node-version: '12.x'
-    - run: yarn install --pure-lockfile  
-    - run: yarn run test:v3
-    - run: yarn run test:v4
-    - run: yarn run test:v5
-    - run: yarn run test:latest
+    - run: yarn install --pure-lockfile
+    - name: Test v3
+      run: yarn run test:v3:raw
+      env:
+        DB_HOST: localhost
+        DB_DATABASE: dataloader_test
+        DB_USER: dataloader_test
+        DB_PASSWORD: dataloader_test
+        DB_PORT: 5432
+    - name: Test v4
+      run: yarn run test:v4:raw
+      env:
+        DB_HOST: localhost
+        DB_DATABASE: dataloader_test
+        DB_USER: dataloader_test
+        DB_PASSWORD: dataloader_test
+        DB_PORT: 5432
+    - name: Test v5
+      run: yarn run test:v5:raw
+      env:
+        DB_HOST: localhost
+        DB_DATABASE: dataloader_test
+        DB_USER: dataloader_test
+        DB_PASSWORD: dataloader_test
+    - name: Test Latest Version
+      run: yarn run test:latest:raw
+      env:
+        DB_HOST: localhost
+        DB_DATABASE: dataloader_test
+        DB_USER: dataloader_test
+        DB_PASSWORD: dataloader_test

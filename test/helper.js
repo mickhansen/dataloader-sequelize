@@ -1,5 +1,7 @@
 import Sequelize from 'sequelize';
 
+let lastInt = 1000;
+
 export const connection = new Sequelize(
   process.env.DB_DATABASE,
   process.env.DB_USER,
@@ -25,6 +27,8 @@ export function createConnection() {
   return connection;
 }
 
-export function randint(min = 1, max = 10000) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+// Having a sequential id helps with the queries with limit
+export function randint() {
+  lastInt += 1;
+  return lastInt;
 }
