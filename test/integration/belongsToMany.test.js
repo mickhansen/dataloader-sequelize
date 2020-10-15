@@ -432,9 +432,10 @@ describe('belongsToMany', function () {
 
           expect(this.User.findAll, 'was called once');
           expect(this.User.findAll, 'to have a call satisfying', [{
+            paranoid: false,
             include: [{
               association: this.Project.Users.manyFromTarget,
-              where: { project_id: [this.project1.get('id'), this.project5.get('id')] }
+              where: { project_id: [this.project1.get('id'), this.project5.get('id')] },
             }]
           }]);
         });
