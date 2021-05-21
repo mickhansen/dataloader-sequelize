@@ -1,6 +1,6 @@
 {
   "name": "dataloader-sequelize",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "description": "Batching and simplification of Sequelize with facebook/dataloader",
   "main": "lib/index.js",
   "license": "MIT",
