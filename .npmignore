@@ -33,3 +33,6 @@ src
 yarn.lock
 test
 resources
+.github
+.yml
+.eslintrc
