@@ -29,4 +29,3 @@ node_modules
 .idea
 test/mocha.opts
 lib
-package-lock.json
