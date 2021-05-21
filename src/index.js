@@ -1,7 +1,6 @@
 import Sequelize from 'sequelize';
 import shimmer from 'shimmer';
 import DataLoader from 'dataloader';
-import Promise from 'bluebird';
 import {groupBy, property, values, clone, isEmpty, uniq} from 'lodash';
 import LRU from 'lru-cache';
 import assert from 'assert';
