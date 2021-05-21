@@ -2,9 +2,6 @@
 
 Batching, caching and simplification of Sequelize with facebook/dataloader
 
-[![Build Status](https://circleci.com/gh/mickhansen/dataloader-sequelize.svg)](https://circleci.com/gh/mickhansen/dataloader-sequelize)
-[![Coverage](https://codecov.io/gh/mickhansen/dataloader-sequelize/branch/master/graph/badge.svg)](https://codecov.io/gh/mickhansen/dataloader-sequelize)
-
 # How it works
 
 dataloader-sequelize is designed to provide per-request caching/batching for sequelize lookups, most likely in a graphql environment
