@@ -236,7 +236,6 @@
     ],
     "wrap-regex": 0,
     "no-var": 0,
-    "max-len": [2, 200, 4],
-    "no-restricted-globals": [2, "Promise"]
+    "max-len": [2, 200, 4]
   }
 }
