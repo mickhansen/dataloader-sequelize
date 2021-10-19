@@ -6,7 +6,7 @@ import LRU from 'lru-cache';
 import assert from 'assert';
 import {methods} from './helper';
 
-const versionTestRegEx = /^[456]/;
+const versionTestRegEx = /^[456]|^github:soradotco\/sequelize#v4/;
 
 function mapResult(attribute, keys, options, result) {
   // Convert an array of results to an object of attribute (primary / foreign / target key) -> array of matching rows
