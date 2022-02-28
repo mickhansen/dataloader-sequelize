@@ -248,6 +248,10 @@ function shimHasOne(target) {
 
       return Promise.resolve().then(() => {
         const sourceKey = instance.get(this.sourceKey);
+        
+        if(!sourceKey) {
+          return Promise.resolve(null);
+        }
 
         const loaders = options[EXPECTED_OPTIONS_KEY].loaders;
         let loader = loaders[this.target.name].bySingleAttribute[this.foreignKey];
