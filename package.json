@@ -24,7 +24,7 @@
     "test:v4:raw": "npm install sequelize@4 && npm run test:current:raw",
     "cover": "babel-node node_modules/.bin/isparta cover --excludes **/resources/** _mocha -- --require resources/mocha-bootload --check-leaks --timeout 10000 --colors --reporter spec --recursive 'test/**/*.test.js'"
   },
-  "repository": {	
+  "repository": {
     "type": "git",
     "url": "https://github.com/mickhansen/dataloader-sequelize.git"
   },

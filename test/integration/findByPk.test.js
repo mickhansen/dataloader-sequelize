@@ -1,10 +1,10 @@
-import Sequelize from 'sequelize';
-import {createConnection, randint} from '../helper';
-import sinon from 'sinon';
-import {createContext, removeContext, EXPECTED_OPTIONS_KEY} from '../../src';
 import Promise from 'bluebird';
+import Sequelize from 'sequelize';
+import sinon from 'sinon';
 import expect from 'unexpected';
-import {method} from '../../src/helper';
+import { EXPECTED_OPTIONS_KEY, createContext, removeContext } from '../../src';
+import { method } from '../../src/helper';
+import { createConnection, randint } from '../helper';
 
 describe('findByPk', function () {
   describe('id primary key', function () {
@@ -30,6 +30,7 @@ describe('findByPk', function () {
       this.context = createContext(this.connection);
       this.method = method(this.User, 'findByPk');
     });
+
     afterEach(function () {
       this.sandbox.restore();
     });
