@@ -6,7 +6,7 @@ import { EXPECTED_OPTIONS_KEY, createContext, removeContext } from '../../src';
 import { method } from '../../src/helper';
 import { createConnection, randint } from '../helper';
 
-describe('findByPk', function () {
+describe('findOne', function () {
   describe('id primary key', function () {
     beforeEach(createConnection);
     beforeEach(async function () {
@@ -28,7 +28,7 @@ describe('findByPk', function () {
       ], { returning: true });
 
       this.context = createContext(this.connection);
-      this.method = method(this.User, 'findByPk');
+      this.method = method(this.User, 'findOne');
     });
 
     afterEach(function () {
@@ -36,28 +36,28 @@ describe('findByPk', function () {
     });
 
     it('works with null', async function () {
-      const userNull = this.User[this.method](null, {[EXPECTED_OPTIONS_KEY]: this.context});
+      const user0 = this.User[this.method]({ [EXPECTED_OPTIONS_KEY]: this.context });
 
-      await expect(userNull, 'to be fulfilled with', null);
+      await expect(user0, 'to be fulfilled with', this.user0);
       expect(this.User.findAll, 'was not called');
     });
 
     it('works with id of 0', async function () {
-      const user0 = await this.User[this.method](0, {[EXPECTED_OPTIONS_KEY]: this.context});
+      const user0 = await this.User[this.method]({ where: { id: 0 }, [EXPECTED_OPTIONS_KEY]: this.context });
 
       expect(user0.get('id'), 'to equal', 0);
       expect(this.User.findAll, 'was called once');
     });
 
     it('batches and caches to a single findAll call (createContext)', async function () {
-      let user1 = this.User[this.method](this.user1.get('id'), {[EXPECTED_OPTIONS_KEY]: this.context})
-        , user2 = this.User[this.method](this.user2.get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
+      let user1 = this.User[this.method]({ where: { id: this.user1.get('id') }, [EXPECTED_OPTIONS_KEY]: this.context })
+        , user2 = this.User[this.method]({ where: { id: this.user2.get('id') }, [EXPECTED_OPTIONS_KEY]: this.context });
 
       await expect(user1, 'to be fulfilled with', this.user1);
       await expect(user2, 'to be fulfilled with', this.user2);
 
-      user1 = this.User[this.method](this.user1.get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
-      user2 = this.User[this.method](this.user2.get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
+      user1 = this.User[this.method]({ where: { id: this.user1.get('id') }, [EXPECTED_OPTIONS_KEY]: this.context });
+      user2 = this.User[this.method]({ where: { id: this.user2.get('id') }, [EXPECTED_OPTIONS_KEY]: this.context });
 
       await expect(user1, 'to be fulfilled with', this.user1);
       await expect(user2, 'to be fulfilled with', this.user2);
@@ -71,9 +71,9 @@ describe('findByPk', function () {
     });
 
     it('supports rejectOnEmpty', async function () {
-      const user1 = this.User[this.method](this.user1.get('id'), { rejectOnEmpty: true, [EXPECTED_OPTIONS_KEY]: this.context })
-        , user2 = this.User[this.method](42, { rejectOnEmpty: true, [EXPECTED_OPTIONS_KEY]: this.context })
-        , user3 = this.User[this.method](42, { [EXPECTED_OPTIONS_KEY]: this.context });
+      const user1 = this.User[this.method]({ where: { id: this.user1.get('id') }, rejectOnEmpty: true, [EXPECTED_OPTIONS_KEY]: this.context })
+        , user2 = this.User[this.method]({ where: { id: 42 }, rejectOnEmpty: true, [EXPECTED_OPTIONS_KEY]: this.context })
+        , user3 = this.User[this.method]({ where: { id: 42 }, [EXPECTED_OPTIONS_KEY]: this.context });
 
       await expect(user1, 'to be fulfilled with', this.user1);
       await expect(user2, 'to be rejected');
@@ -82,9 +82,9 @@ describe('findByPk', function () {
 
     it('supports raw/attributes', async function () {
       await Promise.all([
-        this.User[this.method](this.user1.get('id'), {[EXPECTED_OPTIONS_KEY]: this.context}),
-        this.User[this.method](this.user2.get('id'), {[EXPECTED_OPTIONS_KEY]: this.context, raw: true}),
-        this.User[this.method](this.user3.get('id'), {[EXPECTED_OPTIONS_KEY]: this.context, raw: true})
+        this.User[this.method]({ where: { id: this.user1.get('id') }, [EXPECTED_OPTIONS_KEY]: this.context }),
+        this.User[this.method]({ where: { id: this.user2.get('id') }, [EXPECTED_OPTIONS_KEY]: this.context, raw: true}),
+        this.User[this.method]({ where: { id: this.user3.get('id') }, [EXPECTED_OPTIONS_KEY]: this.context, raw: true})
       ]);
 
       expect(this.User.findAll, 'was called twice');
@@ -111,14 +111,14 @@ describe('findByPk', function () {
 
       this.context = createContext(this.connection);
 
-      let user1 = this.User[this.method](this.user1.get('id'), {[EXPECTED_OPTIONS_KEY]: this.context})
-        , user2 = this.User[this.method](this.user2.get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
+      let user1 = this.User[this.method]({ where: { id: this.user1.get('id') }, [EXPECTED_OPTIONS_KEY]: this.context })
+        , user2 = this.User[this.method]({ where: { id: this.user2.get('id') }, [EXPECTED_OPTIONS_KEY]: this.context });
 
       await expect(user1, 'to be fulfilled with', this.user1);
       await expect(user2, 'to be fulfilled with', this.user2);
 
-      user1 = this.User[this.method](this.user1.get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
-      user2 = this.User[this.method](this.user2.get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
+      user1 = this.User[this.method]({ where: { id: this.user1.get('id') }, [EXPECTED_OPTIONS_KEY]: this.context });
+      user2 = this.User[this.method]({ where: { id: this.user2.get('id') }, [EXPECTED_OPTIONS_KEY]: this.context });
 
       await expect(user1, 'to be fulfilled with', this.user1);
       await expect(user2, 'to be fulfilled with', this.user2);
@@ -157,15 +157,16 @@ describe('findByPk', function () {
       ], { returning: true });
 
       this.context = createContext(this.connection);
-      this.method = method(this.User, 'findByPk');
+      this.method = method(this.User, 'findOne');
     });
+
     afterEach(function () {
       this.sandbox.restore();
     });
 
     it('batches to a single findAll call', async function () {
-      const user1 = this.User[this.method](this.user1.get('identifier'), {[EXPECTED_OPTIONS_KEY]: this.context})
-        , user2 = this.User[this.method](this.user2.get('identifier'), {[EXPECTED_OPTIONS_KEY]: this.context});
+      const user1 = this.User[this.method]({ where: { identifier: this.user1.get('identifier') }, [EXPECTED_OPTIONS_KEY]: this.context })
+        , user2 = this.User[this.method]({ where: { identifier: this.user2.get('identifier') }, [EXPECTED_OPTIONS_KEY]: this.context });
 
       await expect(user1, 'to be fulfilled with', this.user1);
       await expect(user2, 'to be fulfilled with', this.user2);
@@ -179,14 +180,14 @@ describe('findByPk', function () {
     });
 
     it('batches and caches to a single findAll call (createContext)', async function () {
-      let user1 = this.User[this.method](this.user1.get('identifier'), {[EXPECTED_OPTIONS_KEY]: this.context})
-        , user2 = this.User[this.method](this.user2.get('identifier'), {[EXPECTED_OPTIONS_KEY]: this.context});
+      let user1 = this.User[this.method]({ where: { identifier: this.user1.get('identifier') }, [EXPECTED_OPTIONS_KEY]: this.context })
+        , user2 = this.User[this.method]({ where: { identifier: this.user2.get('identifier') }, [EXPECTED_OPTIONS_KEY]: this.context });
 
       await expect(user1, 'to be fulfilled with', this.user1);
       await expect(user2, 'to be fulfilled with', this.user2);
 
-      user1 = this.User[this.method](this.user1.get('identifier'), {[EXPECTED_OPTIONS_KEY]: this.context});
-      user2 = this.User[this.method](this.user2.get('identifier'), {[EXPECTED_OPTIONS_KEY]: this.context});
+      user1 = this.User[this.method]({ where: { identifier: this.user1.get('identifier') }, [EXPECTED_OPTIONS_KEY]: this.context });
+      user2 = this.User[this.method]({ where: { identifier: this.user2.get('identifier') }, [EXPECTED_OPTIONS_KEY]: this.context });
 
       await expect(user1, 'to be fulfilled with', this.user1);
       await expect(user2, 'to be fulfilled with', this.user2);
@@ -197,6 +198,49 @@ describe('findByPk', function () {
           identifier: [this.user1.get('identifier'), this.user2.get('identifier')]
         }
       }]);
+    });
+  });
+
+  describe('other fields', function () {
+    beforeEach(createConnection);
+    beforeEach(async function () {
+      this.sandbox = sinon.sandbox.create();
+
+      this.User = this.connection.define('user', {
+        id: {
+          primaryKey: true,
+          type: Sequelize.INTEGER
+        },
+        status: {
+          type: Sequelize.STRING
+        },
+      });
+
+      this.sandbox.spy(this.User, 'findAll');
+
+      await this.User.sync({
+        force: true
+      });
+
+      [this.user1, this.user2, this.user3] = await this.User.bulkCreate([
+        { id: randint(), status: 'active' },
+        { id: randint(), status: 'inactive' },
+        { id: randint(), status: 'active' }
+      ], { returning: true });
+
+      this.context = createContext(this.connection);
+      this.method = method(this.User, 'findOne');
+    });
+
+    afterEach(function () {
+      this.sandbox.restore();
+    });
+
+    it('works with other where clauses', async function () {
+      const user1 = await this.User[this.method]({ where: { id: this.user1.get('id'), status: this.user1.get('status') }, [EXPECTED_OPTIONS_KEY]: this.context });
+
+      expect(user1.get('id'), 'to equal', this.user1.get('id'));
+      expect(this.User.findAll, 'was not called');
     });
   });
 
@@ -226,15 +270,16 @@ describe('findByPk', function () {
       ], { returning: true });
 
       this.context = createContext(this.connection);
-      this.method = method(this.User, 'findByPk');
+      this.method = method(this.User, 'findOne');
     });
+
     afterEach(function () {
       this.sandbox.restore();
     });
 
     it('batches to a single findAll call', async function () {
-      const user1 = this.User[this.method](this.user1.get('id'), {[EXPECTED_OPTIONS_KEY]: this.context})
-        , user2 = this.User[this.method](this.user2.get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
+      const user1 = this.User[this.method]({ where: { id: this.user1.get('id') }, [EXPECTED_OPTIONS_KEY]: this.context })
+        , user2 = this.User[this.method]({ where: { id: this.user2.get('id') }, [EXPECTED_OPTIONS_KEY]: this.context });
 
       await expect(user1, 'to be fulfilled with', this.user1);
       await expect(user2, 'to be fulfilled with', this.user2);
@@ -267,21 +312,21 @@ describe('findByPk', function () {
       ], { returning: true });
 
       this.context = createContext(this.connection);
-      this.method = method(this.User, 'findByPk');
+      this.method = method(this.User, 'findOne');
     });
     afterEach(function () {
       this.sandbox.restore();
     });
 
     it('batches and caches to a single findAll call (paranoid)', async function () {
-      let user1 = this.User[this.method](this.user1.get('id'), {[EXPECTED_OPTIONS_KEY]: this.context})
-        , user2 = this.User[this.method](this.user2.get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
+      let user1 = this.User[this.method]({ where: { id: this.user1.get('id') }, [EXPECTED_OPTIONS_KEY]: this.context })
+        , user2 = this.User[this.method]({ where: { id: this.user2.get('id') }, [EXPECTED_OPTIONS_KEY]: this.context });
 
       await expect(user1, 'to be fulfilled with', null);
       await expect(user2, 'to be fulfilled with', this.user2);
 
-      user1 = this.User[this.method](this.user1.get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
-      user2 = this.User[this.method](this.user2.get('id'), {[EXPECTED_OPTIONS_KEY]: this.context});
+      user1 = this.User[this.method]({ where: { id: this.user1.get('id') }, [EXPECTED_OPTIONS_KEY]: this.context });
+      user2 = this.User[this.method]({ where: { id: this.user2.get('id') }, [EXPECTED_OPTIONS_KEY]: this.context });
 
       await expect(user1, 'to be fulfilled with', null);
       await expect(user2, 'to be fulfilled with', this.user2);
@@ -295,14 +340,14 @@ describe('findByPk', function () {
     });
 
     it('batches and caches to a single findAll call (not paranoid)', async function () {
-      let user1 = this.User[this.method](this.user1.get('id'), {[EXPECTED_OPTIONS_KEY]: this.context, paranoid: false})
-        , user2 = this.User[this.method](this.user2.get('id'), {[EXPECTED_OPTIONS_KEY]: this.context, paranoid: false});
+      let user1 = this.User[this.method]({ where: { id: this.user1.get('id') }, [EXPECTED_OPTIONS_KEY]: this.context, paranoid: false})
+        , user2 = this.User[this.method]({ where: { id: this.user2.get('id') }, [EXPECTED_OPTIONS_KEY]: this.context, paranoid: false});
 
       await expect(user1, 'to be fulfilled with', this.user1);
       await expect(user2, 'to be fulfilled with', this.user2);
 
-      user1 = this.User[this.method](this.user1.get('id'), {[EXPECTED_OPTIONS_KEY]: this.context, paranoid: false});
-      user2 = this.User[this.method](this.user2.get('id'), {[EXPECTED_OPTIONS_KEY]: this.context, paranoid: false});
+      user1 = this.User[this.method]({ where: { id: this.user1.get('id') }, [EXPECTED_OPTIONS_KEY]: this.context, paranoid: false});
+      user2 = this.User[this.method]({ where: { id: this.user2.get('id') }, [EXPECTED_OPTIONS_KEY]: this.context, paranoid: false});
 
       await expect(user1, 'to be fulfilled with', this.user1);
       await expect(user2, 'to be fulfilled with', this.user2);
