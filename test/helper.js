@@ -19,7 +19,8 @@ export function createConnection() {
     process.env.DB_PASSWORD, {
       dialect: 'postgres',
       host: process.env.DB_HOST,
-      logging: false
+      logging: false,
+      pool: { max: 1, min: 0, idle: 10000 }
     }
   );
 
